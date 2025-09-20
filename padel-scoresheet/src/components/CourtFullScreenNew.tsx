@@ -147,7 +147,7 @@ export default function CourtFullScreenNew({ courtData: initialCourtData }: Cour
 
     } catch (error) {
       console.error('COMPONENT: Error saving upcoming teams:', error);
-      alert('Error saving upcoming teams: ' + error.message);
+      alert('Error saving upcoming teams: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsSavingTeams(false);
     }
