@@ -24,6 +24,11 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
   const [courtData, setCourtData] = useState(initialCourtData);
   const { courtNumber, leftTeam, rightTeam, upcomingLeft, upcomingRight } = courtData;
 
+  // Update local state when props change (from parent component)
+  useEffect(() => {
+    setCourtData(initialCourtData);
+  }, [initialCourtData]);
+
   // Local state for inputs to provide immediate feedback
   const [leftTeamName, setLeftTeamName] = useState(leftTeam.name);
   const [rightTeamName, setRightTeamName] = useState(rightTeam.name);
