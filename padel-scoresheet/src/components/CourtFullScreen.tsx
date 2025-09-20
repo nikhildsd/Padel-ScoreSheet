@@ -33,11 +33,11 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
   const [upcomingLeftName, setUpcomingLeftName] = useState(upcomingLeft);
   const [upcomingRightName, setUpcomingRightName] = useState(upcomingRight);
 
-  // Debounced values - only trigger server updates after user stops typing
-  const debouncedLeftTeamName = useDebounce(leftTeamName, 800);
-  const debouncedRightTeamName = useDebounce(rightTeamName, 800);
-  const debouncedUpcomingLeft = useDebounce(upcomingLeftName, 800);
-  const debouncedUpcomingRight = useDebounce(upcomingRightName, 800);
+  // Debounced values - only trigger server updates after user stops typing for 1.5 seconds
+  const debouncedLeftTeamName = useDebounce(leftTeamName, 1500);
+  const debouncedRightTeamName = useDebounce(rightTeamName, 1500);
+  const debouncedUpcomingLeft = useDebounce(upcomingLeftName, 1500);
+  const debouncedUpcomingRight = useDebounce(upcomingRightName, 1500);
 
   // Define callback functions first
   const handleTeamNameChange = useCallback(async (side: 'left' | 'right', name: string) => {
@@ -54,15 +54,15 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
     }
   }, [courtNumber]);
 
-  // Update server when debounced values change
+  // Update server when debounced values change, but only if user actually typed something
   useEffect(() => {
-    if (debouncedLeftTeamName !== leftTeam.name) {
+    if (debouncedLeftTeamName !== leftTeam.name && debouncedLeftTeamName.trim() !== '') {
       handleTeamNameChange('left', debouncedLeftTeamName);
     }
   }, [debouncedLeftTeamName, leftTeam.name, handleTeamNameChange]);
 
   useEffect(() => {
-    if (debouncedRightTeamName !== rightTeam.name) {
+    if (debouncedRightTeamName !== rightTeam.name && debouncedRightTeamName.trim() !== '') {
       handleTeamNameChange('right', debouncedRightTeamName);
     }
   }, [debouncedRightTeamName, rightTeam.name, handleTeamNameChange]);
