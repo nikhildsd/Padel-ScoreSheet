@@ -19,6 +19,7 @@ interface CourtProps {
 export default function Court({ courtData }: CourtProps) {
   const { courtNumber, leftTeam, rightTeam, upcomingLeft, upcomingRight } = courtData;
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isGloballyLocked, setIsGloballyLocked] = useState(false);
 
   // Local state for inputs to provide immediate feedback
   const [leftTeamName, setLeftTeamName] = useState(leftTeam.name);
@@ -83,11 +84,15 @@ export default function Court({ courtData }: CourtProps) {
   }, [leftTeam.name, rightTeam.name, upcomingLeft, upcomingRight]);
 
   const handleIncrementScore = async (side: 'left' | 'right') => {
-    if (isUpdating) return; // Prevent spam clicking
+    if (isUpdating || isGloballyLocked) return;
     setIsUpdating(true);
 
     try {
       const result = await incrementScore(courtNumber, side);
+      if (result.isLocked) {
+        setIsGloballyLocked(true);
+        setTimeout(() => setIsGloballyLocked(false), 2000);
+      }
       if (!result.success && result.error) {
         console.error('Failed to increment score:', result.error);
       }
@@ -97,11 +102,15 @@ export default function Court({ courtData }: CourtProps) {
   };
 
   const handleDecrementScore = async (side: 'left' | 'right') => {
-    if (isUpdating) return; // Prevent spam clicking
+    if (isUpdating || isGloballyLocked) return;
     setIsUpdating(true);
 
     try {
       const result = await decrementScore(courtNumber, side);
+      if (result.isLocked) {
+        setIsGloballyLocked(true);
+        setTimeout(() => setIsGloballyLocked(false), 2000);
+      }
       if (!result.success && result.error) {
         console.error('Failed to decrement score:', result.error);
       }
@@ -111,11 +120,15 @@ export default function Court({ courtData }: CourtProps) {
   };
 
   const handleResetScores = async () => {
-    if (isUpdating) return; // Prevent spam clicking
+    if (isUpdating || isGloballyLocked) return;
     setIsUpdating(true);
 
     try {
       const result = await resetCourtScores(courtNumber);
+      if (result.isLocked) {
+        setIsGloballyLocked(true);
+        setTimeout(() => setIsGloballyLocked(false), 2000);
+      }
       if (!result.success && result.error) {
         console.error('Failed to reset scores:', result.error);
       }
@@ -169,16 +182,16 @@ export default function Court({ courtData }: CourtProps) {
             <div className="flex gap-1 mb-1">
               <button
                 onClick={() => handleDecrementScore('left')}
-                disabled={isUpdating}
-                className={`w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 active:scale-90'}`}
+                disabled={isUpdating || isGloballyLocked}
+                className={`w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform ${isUpdating || isGloballyLocked ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 active:scale-90'}`}
               >
                 −
               </button>
               <button
                 onClick={() => handleIncrementScore('left')}
-                disabled={isUpdating}
-                className={`w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'active:scale-90'}`}
-                style={{backgroundColor: isUpdating ? '#9CA3AF' : '#04362d'}}
+                disabled={isUpdating || isGloballyLocked}
+                className={`w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform ${isUpdating || isGloballyLocked ? 'bg-gray-400 cursor-not-allowed' : 'active:scale-90'}`}
+                style={{backgroundColor: isUpdating || isGloballyLocked ? '#9CA3AF' : '#04362d'}}
               >
                 +
               </button>
@@ -201,16 +214,16 @@ export default function Court({ courtData }: CourtProps) {
             <div className="flex gap-1 mb-1">
               <button
                 onClick={() => handleDecrementScore('right')}
-                disabled={isUpdating}
-                className={`w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 active:scale-90'}`}
+                disabled={isUpdating || isGloballyLocked}
+                className={`w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform ${isUpdating || isGloballyLocked ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 active:scale-90'}`}
               >
                 −
               </button>
               <button
                 onClick={() => handleIncrementScore('right')}
-                disabled={isUpdating}
-                className={`w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'active:scale-90'}`}
-                style={{backgroundColor: isUpdating ? '#9CA3AF' : '#04362d'}}
+                disabled={isUpdating || isGloballyLocked}
+                className={`w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform ${isUpdating || isGloballyLocked ? 'bg-gray-400 cursor-not-allowed' : 'active:scale-90'}`}
+                style={{backgroundColor: isUpdating || isGloballyLocked ? '#9CA3AF' : '#04362d'}}
               >
                 +
               </button>
@@ -223,11 +236,11 @@ export default function Court({ courtData }: CourtProps) {
 
         <button
           onClick={handleResetScores}
-          disabled={isUpdating}
-          className={`w-full px-2 py-1 text-white text-xs rounded-md transition-all font-bold tracking-wide uppercase shadow-md ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'transform active:scale-95'}`}
-          style={{backgroundColor: isUpdating ? '#9CA3AF' : '#04362d'}}
+          disabled={isUpdating || isGloballyLocked}
+          className={`w-full px-2 py-1 text-white text-xs rounded-md transition-all font-bold tracking-wide uppercase shadow-md ${isUpdating || isGloballyLocked ? 'bg-gray-400 cursor-not-allowed' : 'transform active:scale-95'}`}
+          style={{backgroundColor: isUpdating || isGloballyLocked ? '#9CA3AF' : '#04362d'}}
         >
-          {isUpdating ? 'Updating...' : 'Reset'}
+          {isGloballyLocked ? 'System Locked' : isUpdating ? 'Updating...' : 'Reset'}
         </button>
       </div>
 

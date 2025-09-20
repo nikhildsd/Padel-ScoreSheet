@@ -21,6 +21,7 @@ interface CourtFullScreenProps {
 export default function CourtFullScreen({ courtData: initialCourtData, onDataUpdate }: CourtFullScreenProps) {
   const [courtData, setCourtData] = useState(initialCourtData);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isGloballyLocked, setIsGloballyLocked] = useState(false);
   const { courtNumber, leftTeam, rightTeam, upcomingLeft, upcomingRight } = courtData;
 
   // Update local state when props change (from parent component)
@@ -89,7 +90,7 @@ export default function CourtFullScreen({ courtData: initialCourtData, onDataUpd
   }, [leftTeam.name, rightTeam.name, upcomingLeft, upcomingRight]);
 
   const handleIncrementScore = async (side: 'left' | 'right') => {
-    if (isUpdating) return; // Prevent spam clicking
+    if (isUpdating || isGloballyLocked) return;
 
     setIsUpdating(true);
 
@@ -105,7 +106,12 @@ export default function CourtFullScreen({ courtData: initialCourtData, onDataUpd
 
       // Update server
       const result = await incrementScore(courtNumber, side);
-      if (!result.success && result.error) {
+      if (result.isLocked) {
+        setIsGloballyLocked(true);
+        setTimeout(() => setIsGloballyLocked(false), 2000);
+        // Revert optimistic update on lock
+        setCourtData(courtData);
+      } else if (!result.success && result.error) {
         console.error('Failed to increment score:', result.error);
         // Revert optimistic update on error
         setCourtData(courtData);
@@ -122,7 +128,7 @@ export default function CourtFullScreen({ courtData: initialCourtData, onDataUpd
   };
 
   const handleDecrementScore = async (side: 'left' | 'right') => {
-    if (isUpdating) return; // Prevent spam clicking
+    if (isUpdating || isGloballyLocked) return;
 
     setIsUpdating(true);
 
@@ -138,7 +144,12 @@ export default function CourtFullScreen({ courtData: initialCourtData, onDataUpd
 
       // Update server
       const result = await decrementScore(courtNumber, side);
-      if (!result.success && result.error) {
+      if (result.isLocked) {
+        setIsGloballyLocked(true);
+        setTimeout(() => setIsGloballyLocked(false), 2000);
+        // Revert optimistic update on lock
+        setCourtData(courtData);
+      } else if (!result.success && result.error) {
         console.error('Failed to decrement score:', result.error);
         // Revert optimistic update on error
         setCourtData(courtData);
@@ -155,7 +166,7 @@ export default function CourtFullScreen({ courtData: initialCourtData, onDataUpd
   };
 
   const handleResetScores = async () => {
-    if (isUpdating) return; // Prevent spam clicking
+    if (isUpdating || isGloballyLocked) return;
 
     setIsUpdating(true);
 
@@ -170,7 +181,12 @@ export default function CourtFullScreen({ courtData: initialCourtData, onDataUpd
 
       // Update server
       const result = await resetCourtScores(courtNumber);
-      if (!result.success && result.error) {
+      if (result.isLocked) {
+        setIsGloballyLocked(true);
+        setTimeout(() => setIsGloballyLocked(false), 2000);
+        // Revert optimistic update on lock
+        setCourtData(courtData);
+      } else if (!result.success && result.error) {
         console.error('Failed to reset scores:', result.error);
         // Revert optimistic update on error
         setCourtData(courtData);
@@ -252,16 +268,16 @@ export default function CourtFullScreen({ courtData: initialCourtData, onDataUpd
               <div className="flex gap-2 sm:gap-3 lg:gap-4 mb-3 sm:mb-4 lg:mb-6">
                 <button
                   onClick={() => handleDecrementScore('left')}
-                  disabled={isUpdating}
-                  className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-white rounded-full transition-all text-lg sm:text-xl lg:text-2xl flex items-center justify-center font-bold shadow-lg transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 active:scale-90'}`}
+                  disabled={isUpdating || isGloballyLocked}
+                  className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-white rounded-full transition-all text-lg sm:text-xl lg:text-2xl flex items-center justify-center font-bold shadow-lg transform ${isUpdating || isGloballyLocked ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 active:scale-90'}`}
                 >
                   −
                 </button>
                 <button
                   onClick={() => handleIncrementScore('left')}
-                  disabled={isUpdating}
-                  className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-white rounded-full transition-all text-lg sm:text-xl lg:text-2xl flex items-center justify-center font-bold shadow-lg transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'active:scale-90'}`}
-                  style={{backgroundColor: isUpdating ? '#9CA3AF' : '#04362d'}}
+                  disabled={isUpdating || isGloballyLocked}
+                  className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-white rounded-full transition-all text-lg sm:text-xl lg:text-2xl flex items-center justify-center font-bold shadow-lg transform ${isUpdating || isGloballyLocked ? 'bg-gray-400 cursor-not-allowed' : 'active:scale-90'}`}
+                  style={{backgroundColor: isUpdating || isGloballyLocked ? '#9CA3AF' : '#04362d'}}
                 >
                   +
                 </button>
@@ -285,16 +301,16 @@ export default function CourtFullScreen({ courtData: initialCourtData, onDataUpd
               <div className="flex gap-2 sm:gap-3 lg:gap-4 mb-3 sm:mb-4 lg:mb-6">
                 <button
                   onClick={() => handleDecrementScore('right')}
-                  disabled={isUpdating}
-                  className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-white rounded-full transition-all text-lg sm:text-xl lg:text-2xl flex items-center justify-center font-bold shadow-lg transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 active:scale-90'}`}
+                  disabled={isUpdating || isGloballyLocked}
+                  className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-white rounded-full transition-all text-lg sm:text-xl lg:text-2xl flex items-center justify-center font-bold shadow-lg transform ${isUpdating || isGloballyLocked ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 active:scale-90'}`}
                 >
                   −
                 </button>
                 <button
                   onClick={() => handleIncrementScore('right')}
-                  disabled={isUpdating}
-                  className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-white rounded-full transition-all text-lg sm:text-xl lg:text-2xl flex items-center justify-center font-bold shadow-lg transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'active:scale-90'}`}
-                  style={{backgroundColor: isUpdating ? '#9CA3AF' : '#04362d'}}
+                  disabled={isUpdating || isGloballyLocked}
+                  className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-white rounded-full transition-all text-lg sm:text-xl lg:text-2xl flex items-center justify-center font-bold shadow-lg transform ${isUpdating || isGloballyLocked ? 'bg-gray-400 cursor-not-allowed' : 'active:scale-90'}`}
+                  style={{backgroundColor: isUpdating || isGloballyLocked ? '#9CA3AF' : '#04362d'}}
                 >
                   +
                 </button>
@@ -309,11 +325,11 @@ export default function CourtFullScreen({ courtData: initialCourtData, onDataUpd
           <div className="text-center mb-6 sm:mb-12">
             <button
               onClick={handleResetScores}
-              disabled={isUpdating}
-              className={`px-6 sm:px-12 py-2 sm:py-4 text-white text-base sm:text-xl rounded-xl sm:rounded-2xl transition-all font-bold tracking-wide uppercase shadow-xl ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'transform active:scale-95 hover:shadow-2xl'}`}
-              style={{backgroundColor: isUpdating ? '#9CA3AF' : '#04362d'}}
+              disabled={isUpdating || isGloballyLocked}
+              className={`px-6 sm:px-12 py-2 sm:py-4 text-white text-base sm:text-xl rounded-xl sm:rounded-2xl transition-all font-bold tracking-wide uppercase shadow-xl ${isUpdating || isGloballyLocked ? 'bg-gray-400 cursor-not-allowed' : 'transform active:scale-95 hover:shadow-2xl'}`}
+              style={{backgroundColor: isUpdating || isGloballyLocked ? '#9CA3AF' : '#04362d'}}
             >
-              {isUpdating ? 'Updating...' : 'Reset Scores'}
+              {isGloballyLocked ? 'System Locked' : isUpdating ? 'Updating...' : 'Reset Scores'}
             </button>
           </div>
 

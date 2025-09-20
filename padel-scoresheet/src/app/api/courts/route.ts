@@ -5,6 +5,8 @@ import { CourtData } from '@/lib/db-simple';
 interface GlobalStore {
   courtsStore?: Map<number, CourtData>;
   isInitialized?: boolean;
+  isLocked?: boolean;
+  lockTimestamp?: number;
 }
 
 const globalStore = globalThis as unknown as GlobalStore;
@@ -12,9 +14,51 @@ const globalStore = globalThis as unknown as GlobalStore;
 if (!globalStore.courtsStore) {
   globalStore.courtsStore = new Map<number, CourtData>();
   globalStore.isInitialized = false;
+  globalStore.isLocked = false;
+  globalStore.lockTimestamp = 0;
 }
 
 const courtsStore: Map<number, CourtData> = globalStore.courtsStore;
+
+// Global lock management
+const LOCK_TIMEOUT = 10000; // 10 seconds timeout for safety
+
+function acquireGlobalLock(): boolean {
+  const now = Date.now();
+
+  // Check if lock is expired (safety mechanism)
+  if (globalStore.isLocked && globalStore.lockTimestamp && (now - globalStore.lockTimestamp) > LOCK_TIMEOUT) {
+    console.log('Global lock expired, releasing...');
+    globalStore.isLocked = false;
+    globalStore.lockTimestamp = 0;
+  }
+
+  // Try to acquire lock
+  if (globalStore.isLocked) {
+    return false; // Lock is held by another operation
+  }
+
+  globalStore.isLocked = true;
+  globalStore.lockTimestamp = now;
+  return true;
+}
+
+function releaseGlobalLock(): void {
+  globalStore.isLocked = false;
+  globalStore.lockTimestamp = 0;
+}
+
+function isGloballyLocked(): boolean {
+  const now = Date.now();
+
+  // Check if lock is expired
+  if (globalStore.isLocked && globalStore.lockTimestamp && (now - globalStore.lockTimestamp) > LOCK_TIMEOUT) {
+    releaseGlobalLock();
+    return false;
+  }
+
+  return globalStore.isLocked || false;
+}
 
 // Initialize store with default data (only once per serverless instance)
 function initializeStore() {
@@ -36,13 +80,25 @@ function initializeStore() {
   console.log('Initialized court data store via API');
 }
 
-// GET /api/courts - Get all courts or specific court
+// GET /api/courts - Get all courts, specific court, or lock status
 export async function GET(request: NextRequest) {
   try {
     initializeStore();
 
     const { searchParams } = new URL(request.url);
     const courtId = searchParams.get('courtId');
+    const checkLock = searchParams.get('checkLock');
+
+    if (checkLock === 'true') {
+      // Return global lock status
+      return NextResponse.json({
+        success: true,
+        data: {
+          isLocked: isGloballyLocked(),
+          lockTimestamp: globalStore.lockTimestamp || 0
+        }
+      });
+    }
 
     if (courtId) {
       // Get specific court
@@ -53,7 +109,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: false, error: 'Court not found' }, { status: 404 });
       }
 
-      return NextResponse.json({ success: true, data: court });
+      return NextResponse.json({
+        success: true,
+        data: court,
+        isLocked: isGloballyLocked()
+      });
     } else {
       // Get all courts
       const courts: CourtData[] = [];
@@ -64,7 +124,11 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      return NextResponse.json({ success: true, data: courts });
+      return NextResponse.json({
+        success: true,
+        data: courts,
+        isLocked: isGloballyLocked()
+      });
     }
   } catch (error) {
     console.error('Error in GET /api/courts:', error);
@@ -77,27 +141,36 @@ export async function POST(request: NextRequest) {
   try {
     initializeStore();
 
-    const body = await request.json();
-    const { action, courtNumber, side, name, courtData } = body;
+    // Try to acquire global lock
+    if (!acquireGlobalLock()) {
+      return NextResponse.json({
+        success: false,
+        error: 'System is currently processing another update. Please wait.',
+        isLocked: true
+      }, { status: 423 }); // 423 Locked
+    }
 
-    switch (action) {
-      case 'incrementScore': {
-        const court = courtsStore.get(courtNumber);
-        if (!court) {
-          return NextResponse.json({ success: false, error: 'Court not found' }, { status: 404 });
+      const body = await request.json();
+      const { action, courtNumber, side, name, courtData } = body;
+
+      switch (action) {
+        case 'incrementScore': {
+          const court = courtsStore.get(courtNumber);
+          if (!court) {
+            return NextResponse.json({ success: false, error: 'Court not found' }, { status: 404 });
+          }
+
+          if (side === 'left') {
+            court.leftTeam.score = Math.min(99, court.leftTeam.score + 1);
+          } else if (side === 'right') {
+            court.rightTeam.score = Math.min(99, court.rightTeam.score + 1);
+          }
+
+          court.lastUpdated = new Date().toISOString();
+          courtsStore.set(courtNumber, court);
+
+          return NextResponse.json({ success: true, data: court });
         }
-
-        if (side === 'left') {
-          court.leftTeam.score = Math.min(99, court.leftTeam.score + 1);
-        } else if (side === 'right') {
-          court.rightTeam.score = Math.min(99, court.rightTeam.score + 1);
-        }
-
-        court.lastUpdated = new Date().toISOString();
-        courtsStore.set(courtNumber, court);
-
-        return NextResponse.json({ success: true, data: court });
-      }
 
       case 'decrementScore': {
         const court = courtsStore.get(courtNumber);
@@ -210,5 +283,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error in POST /api/courts:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+  } finally {
+    releaseGlobalLock();
   }
 }

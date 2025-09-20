@@ -2,6 +2,28 @@ import { CourtData } from './db-simple';
 
 const API_BASE = '/api/courts';
 
+export async function checkGlobalLock(): Promise<{ isLocked: boolean; lockTimestamp: number }> {
+  try {
+    const response = await fetch(`${API_BASE}?checkLock=true`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      return { isLocked: false, lockTimestamp: 0 };
+    }
+
+    return result.data;
+  } catch (error) {
+    console.error('Error checking global lock:', error);
+    return { isLocked: false, lockTimestamp: 0 };
+  }
+}
+
 export async function getCourtData(): Promise<CourtData[]> {
   try {
     const response = await fetch(API_BASE, {
@@ -53,7 +75,23 @@ export async function getSingleCourtData(courtNumber: number): Promise<{ success
   }
 }
 
-export async function incrementScore(courtNumber: number, side: 'left' | 'right'): Promise<{ success: boolean; error?: string }> {
+interface ApiResponse {
+  success: boolean;
+  error?: string;
+  isLocked?: boolean;
+}
+
+async function handleApiResponse(response: Response): Promise<ApiResponse> {
+  const result = await response.json();
+
+  if (response.status === 423) {
+    return { success: false, error: result.error || 'System is locked', isLocked: true };
+  }
+
+  return { success: result.success, error: result.error, isLocked: result.isLocked };
+}
+
+export async function incrementScore(courtNumber: number, side: 'left' | 'right'): Promise<ApiResponse> {
   try {
     const response = await fetch(API_BASE, {
       method: 'POST',
@@ -67,20 +105,14 @@ export async function incrementScore(courtNumber: number, side: 'left' | 'right'
       }),
     });
 
-    const result = await response.json();
-
-    if (!result.success) {
-      return { success: false, error: result.error || 'Failed to increment score' };
-    }
-
-    return { success: true };
+    return await handleApiResponse(response);
   } catch (error) {
     console.error('Error incrementing score:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Failed to update score' };
   }
 }
 
-export async function decrementScore(courtNumber: number, side: 'left' | 'right'): Promise<{ success: boolean; error?: string }> {
+export async function decrementScore(courtNumber: number, side: 'left' | 'right'): Promise<ApiResponse> {
   try {
     const response = await fetch(API_BASE, {
       method: 'POST',
@@ -94,20 +126,14 @@ export async function decrementScore(courtNumber: number, side: 'left' | 'right'
       }),
     });
 
-    const result = await response.json();
-
-    if (!result.success) {
-      return { success: false, error: result.error || 'Failed to decrement score' };
-    }
-
-    return { success: true };
+    return await handleApiResponse(response);
   } catch (error) {
     console.error('Error decrementing score:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Failed to update score' };
   }
 }
 
-export async function resetCourtScores(courtNumber: number): Promise<{ success: boolean; error?: string }> {
+export async function resetCourtScores(courtNumber: number): Promise<ApiResponse> {
   try {
     const response = await fetch(API_BASE, {
       method: 'POST',
@@ -120,20 +146,14 @@ export async function resetCourtScores(courtNumber: number): Promise<{ success: 
       }),
     });
 
-    const result = await response.json();
-
-    if (!result.success) {
-      return { success: false, error: result.error || 'Failed to reset scores' };
-    }
-
-    return { success: true };
+    return await handleApiResponse(response);
   } catch (error) {
     console.error('Error resetting scores:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Failed to reset scores' };
   }
 }
 
-export async function updateTeamName(courtNumber: number, side: 'left' | 'right', name: string): Promise<{ success: boolean; error?: string }> {
+export async function updateTeamName(courtNumber: number, side: 'left' | 'right', name: string): Promise<ApiResponse> {
   try {
     const response = await fetch(API_BASE, {
       method: 'POST',
@@ -148,20 +168,14 @@ export async function updateTeamName(courtNumber: number, side: 'left' | 'right'
       }),
     });
 
-    const result = await response.json();
-
-    if (!result.success) {
-      return { success: false, error: result.error || 'Failed to update team name' };
-    }
-
-    return { success: true };
+    return await handleApiResponse(response);
   } catch (error) {
     console.error('Error updating team name:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Failed to update team name' };
   }
 }
 
-export async function updateUpcomingTeam(courtNumber: number, side: 'left' | 'right', name: string): Promise<{ success: boolean; error?: string }> {
+export async function updateUpcomingTeam(courtNumber: number, side: 'left' | 'right', name: string): Promise<ApiResponse> {
   try {
     const response = await fetch(API_BASE, {
       method: 'POST',
@@ -176,20 +190,14 @@ export async function updateUpcomingTeam(courtNumber: number, side: 'left' | 'ri
       }),
     });
 
-    const result = await response.json();
-
-    if (!result.success) {
-      return { success: false, error: result.error || 'Failed to update upcoming team' };
-    }
-
-    return { success: true };
+    return await handleApiResponse(response);
   } catch (error) {
     console.error('Error updating upcoming team:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Failed to update upcoming team' };
   }
 }
 
-export async function resetAllCourtScores(): Promise<{ success: boolean; error?: string }> {
+export async function resetAllCourtScores(): Promise<ApiResponse> {
   try {
     const response = await fetch(API_BASE, {
       method: 'POST',
@@ -201,13 +209,7 @@ export async function resetAllCourtScores(): Promise<{ success: boolean; error?:
       }),
     });
 
-    const result = await response.json();
-
-    if (!result.success) {
-      return { success: false, error: result.error || 'Failed to reset all scores' };
-    }
-
-    return { success: true };
+    return await handleApiResponse(response);
   } catch (error) {
     console.error('Error resetting all scores:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Failed to reset all scores' };
