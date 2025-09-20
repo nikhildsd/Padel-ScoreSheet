@@ -1,0 +1,86 @@
+[
+  {
+    "courtNumber": 1,
+    "leftTeam": {
+      "name": "Team Aw",
+      "score": 10
+    },
+    "rightTeam": {
+      "name": "Team Bddwfff",
+      "score": 27
+    },
+    "upcomingLeft": "",
+    "upcomingRight": "",
+    "lastUpdated": "2025-08-23T06:13:33.081Z"
+  },
+  {
+    "courtNumber": 2,
+    "leftTeam": {
+      "name": "Team A",
+      "score": 3
+    },
+    "rightTeam": {
+      "name": "Team B",
+      "score": 0
+    },
+    "upcomingLeft": "",
+    "upcomingRight": "",
+    "lastUpdated": "2025-08-23T06:13:33.081Z"
+  },
+  {
+    "courtNumber": 3,
+    "leftTeam": {
+      "name": "Team A",
+      "score": 0
+    },
+    "rightTeam": {
+      "name": "Team B",
+      "score": 0
+    },
+    "upcomingLeft": "",
+    "upcomingRight": "",
+    "lastUpdated": "2025-08-23T06:13:33.081Z"
+  },
+  {
+    "courtNumber": 4,
+    "leftTeam": {
+      "name": "Team A",
+      "score": 0
+    },
+    "rightTeam": {
+      "name": "Team B",
+      "score": 0
+    },
+    "upcomingLeft": "",
+    "upcomingRight": "k",
+    "lastUpdated": "2025-08-23T06:13:33.081Z"
+  },
+  {
+    "courtNumber": 5,
+    "leftTeam": {
+      "name": "Team A",
+      "score": 0
+    },
+    "rightTeam": {
+      "name": "Team B",
+      "score": 0
+    },
+    "upcomingLeft": "",
+    "upcomingRight": "",
+    "lastUpdated": "2025-08-23T06:13:33.081Z"
+  },
+  {
+    "courtNumber": 6,
+    "leftTeam": {
+      "name": "Team A",
+      "score": 0
+    },
+    "rightTeam": {
+      "name": "Team B",
+      "score": 0
+    },
+    "upcomingLeft": "",
+    "upcomingRight": "",
+    "lastUpdated": "2025-08-23T06:13:33.081Z"
+  }
+]

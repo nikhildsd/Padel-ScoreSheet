@@ -1,0 +1,14 @@
+{
+  "courtNumber": 2,
+  "leftTeam": {
+    "name": "Team A",
+    "score": 13
+  },
+  "rightTeam": {
+    "name": "Team B",
+    "score": 4
+  },
+  "upcomingLeft": "jessica",
+  "upcomingRight": "",
+  "lastUpdated": "2025-08-23T06:28:52.701Z"
+}
