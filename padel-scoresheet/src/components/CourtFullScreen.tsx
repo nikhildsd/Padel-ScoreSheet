@@ -1,15 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
 import { CourtData } from '@/lib/db-simple';
 import {
   incrementScore,
   decrementScore,
   resetCourtScores,
   updateTeamName,
-  updateUpcomingTeam,
-  getSingleCourtData
+  updateUpcomingTeam
 } from '@/lib/actions';
 import { useDebounce } from '@/hooks/useDebounce';
 import Link from 'next/link';
@@ -21,7 +19,6 @@ interface CourtFullScreenProps {
 }
 
 export default function CourtFullScreen({ courtData: initialCourtData, onDataUpdate }: CourtFullScreenProps) {
-  const router = useRouter();
   const [courtData, setCourtData] = useState(initialCourtData);
   const { courtNumber, leftTeam, rightTeam, upcomingLeft, upcomingRight } = courtData;
 
@@ -42,30 +39,45 @@ export default function CourtFullScreen({ courtData: initialCourtData, onDataUpd
   const debouncedUpcomingLeft = useDebounce(upcomingLeftName, 800);
   const debouncedUpcomingRight = useDebounce(upcomingRightName, 800);
 
+  // Define callback functions first
+  const handleTeamNameChange = useCallback(async (side: 'left' | 'right', name: string) => {
+    const result = await updateTeamName(courtNumber, side, name);
+    if (!result.success && result.error) {
+      console.error('Failed to update team name:', result.error);
+    }
+  }, [courtNumber]);
+
+  const handleUpcomingTeamChange = useCallback(async (side: 'left' | 'right', name: string) => {
+    const result = await updateUpcomingTeam(courtNumber, side, name);
+    if (!result.success && result.error) {
+      console.error('Failed to update upcoming team:', result.error);
+    }
+  }, [courtNumber]);
+
   // Update server when debounced values change
   useEffect(() => {
     if (debouncedLeftTeamName !== leftTeam.name) {
       handleTeamNameChange('left', debouncedLeftTeamName);
     }
-  }, [debouncedLeftTeamName]);
+  }, [debouncedLeftTeamName, leftTeam.name, handleTeamNameChange]);
 
   useEffect(() => {
     if (debouncedRightTeamName !== rightTeam.name) {
       handleTeamNameChange('right', debouncedRightTeamName);
     }
-  }, [debouncedRightTeamName]);
+  }, [debouncedRightTeamName, rightTeam.name, handleTeamNameChange]);
 
   useEffect(() => {
     if (debouncedUpcomingLeft !== upcomingLeft) {
       handleUpcomingTeamChange('left', debouncedUpcomingLeft);
     }
-  }, [debouncedUpcomingLeft]);
+  }, [debouncedUpcomingLeft, upcomingLeft, handleUpcomingTeamChange]);
 
   useEffect(() => {
     if (debouncedUpcomingRight !== upcomingRight) {
       handleUpcomingTeamChange('right', debouncedUpcomingRight);
     }
-  }, [debouncedUpcomingRight]);
+  }, [debouncedUpcomingRight, upcomingRight, handleUpcomingTeamChange]);
 
   // Update local state when props change (from server updates)
   useEffect(() => {
@@ -137,20 +149,6 @@ export default function CourtFullScreen({ courtData: initialCourtData, onDataUpd
     // Trigger parent to refresh data for real-time sync
     if (onDataUpdate) {
       await onDataUpdate();
-    }
-  };
-
-  const handleTeamNameChange = async (side: 'left' | 'right', name: string) => {
-    const result = await updateTeamName(courtNumber, side, name);
-    if (!result.success && result.error) {
-      console.error('Failed to update team name:', result.error);
-    }
-  };
-
-  const handleUpcomingTeamChange = async (side: 'left' | 'right', name: string) => {
-    const result = await updateUpcomingTeam(courtNumber, side, name);
-    if (!result.success && result.error) {
-      console.error('Failed to update upcoming team:', result.error);
     }
   };
 

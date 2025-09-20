@@ -15,7 +15,12 @@ export interface CourtData {
 
 // Global in-memory storage that persists across function calls within same instance
 // This works perfectly on Vercel serverless functions during active sessions
-const globalStore = globalThis as any;
+interface GlobalStore {
+  courtsStore?: Map<number, CourtData>;
+  isInitialized?: boolean;
+}
+
+const globalStore = globalThis as unknown as GlobalStore;
 
 if (!globalStore.courtsStore) {
   globalStore.courtsStore = new Map<number, CourtData>();
