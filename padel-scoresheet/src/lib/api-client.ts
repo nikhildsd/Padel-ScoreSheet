@@ -2,27 +2,6 @@ import { CourtData } from './db-simple';
 
 const API_BASE = '/api/courts';
 
-export async function checkGlobalLock(): Promise<{ isLocked: boolean; lockTimestamp: number }> {
-  try {
-    const response = await fetch(`${API_BASE}?checkLock=true`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    const result = await response.json();
-
-    if (!result.success) {
-      return { isLocked: false, lockTimestamp: 0 };
-    }
-
-    return result.data;
-  } catch (error) {
-    console.error('Error checking global lock:', error);
-    return { isLocked: false, lockTimestamp: 0 };
-  }
-}
 
 export async function getCourtData(): Promise<CourtData[]> {
   try {
@@ -78,17 +57,11 @@ export async function getSingleCourtData(courtNumber: number): Promise<{ success
 interface ApiResponse {
   success: boolean;
   error?: string;
-  isLocked?: boolean;
 }
 
 async function handleApiResponse(response: Response): Promise<ApiResponse> {
   const result = await response.json();
-
-  if (response.status === 423) {
-    return { success: false, error: result.error || 'System is locked', isLocked: true };
-  }
-
-  return { success: result.success, error: result.error, isLocked: result.isLocked };
+  return { success: result.success, error: result.error };
 }
 
 export async function incrementScore(courtNumber: number, side: 'left' | 'right'): Promise<ApiResponse> {

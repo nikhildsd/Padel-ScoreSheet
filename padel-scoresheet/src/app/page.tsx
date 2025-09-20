@@ -5,6 +5,7 @@ import Court from '@/components/Court';
 import Image from 'next/image';
 import { getCourtData } from '@/lib/api-client';
 import { CourtData } from '@/lib/db-simple';
+import { supabase } from '@/lib/supabase';
 
 export default function Home() {
   const [courts, setCourts] = useState<CourtData[]>([]);
@@ -27,10 +28,27 @@ export default function Home() {
     refreshCourtData();
   }, []);
 
-  // Set up polling for real-time updates every 1 second for better sync
+  // Set up real-time subscription to Supabase
   useEffect(() => {
-    const interval = setInterval(refreshCourtData, 1000);
-    return () => clearInterval(interval);
+    const channel = supabase
+      .channel('courts_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'courts'
+        },
+        () => {
+          // Refresh data when any change occurs
+          refreshCourtData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   if (loading) {

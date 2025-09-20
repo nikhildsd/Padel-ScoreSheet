@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { getCourtData } from '@/lib/api-client';
 import CourtFullScreen from '@/components/CourtFullScreen';
 import { CourtData } from '@/lib/db-simple';
+import { supabase } from '@/lib/supabase';
 
 interface PageProps {
   params: {
@@ -42,10 +43,27 @@ export default function CourtPage({ params }: PageProps) {
     refreshAllCourtData();
   }, []);
 
-  // Set up polling for real-time updates every 1 second (same as homepage)
+  // Set up real-time subscription to Supabase
   useEffect(() => {
-    const interval = setInterval(refreshAllCourtData, 1000);
-    return () => clearInterval(interval);
+    const channel = supabase
+      .channel('courts_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'courts'
+        },
+        () => {
+          // Refresh data when any change occurs
+          refreshAllCourtData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   if (notFoundError) {
@@ -67,5 +85,5 @@ export default function CourtPage({ params }: PageProps) {
     notFound();
   }
 
-  return <CourtFullScreen courtData={courtData} onDataUpdate={refreshAllCourtData} />;
+  return <CourtFullScreen courtData={courtData} />;
 }
