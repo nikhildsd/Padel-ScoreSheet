@@ -89,6 +89,112 @@ export default function CourtFullScreenNew({ courtData: initialCourtData }: Cour
     }
   };
 
+  // Switch upcoming players to current players
+  const switchToNextMatch = async () => {
+    if (isSavingTeams) return;
+    setIsSavingTeams(true);
+
+    try {
+      console.log('COMPONENT: Switching to next match for court', courtNumber);
+
+      // Update current team names to upcoming teams
+      const response = await fetch('/api/update-names', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courtNumber,
+          leftName: upcomingLeftName || 'TEAM A',
+          rightName: upcomingRightName || 'TEAM B'
+        })
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(`Failed to update team names: ${result.error}`);
+      }
+
+      // Reset upcoming teams to defaults
+      const leftUpcomingResponse = await fetch('/api/courts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateUpcomingTeam',
+          courtNumber,
+          side: 'left',
+          name: 'TEAM A'
+        })
+      });
+
+      const leftUpcomingResult = await leftUpcomingResponse.json();
+
+      if (!leftUpcomingResult.success) {
+        throw new Error(`Failed to reset left upcoming team: ${leftUpcomingResult.error}`);
+      }
+
+      const rightUpcomingResponse = await fetch('/api/courts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateUpcomingTeam',
+          courtNumber,
+          side: 'right',
+          name: 'TEAM B'
+        })
+      });
+
+      const rightUpcomingResult = await rightUpcomingResponse.json();
+
+      if (!rightUpcomingResult.success) {
+        throw new Error(`Failed to reset right upcoming team: ${rightUpcomingResult.error}`);
+      }
+
+      // Reset scores to 0-0
+      const resetResponse = await fetch('/api/courts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'resetScores',
+          courtNumber
+        })
+      });
+
+      const resetResult = await resetResponse.json();
+
+      if (!resetResult.success) {
+        throw new Error(`Failed to reset scores: ${resetResult.error}`);
+      }
+
+      console.log('COMPONENT: Successfully switched to next match');
+
+      // Update local state to reflect all changes
+      setTimeout(() => {
+        const newLeftName = upcomingLeftName || 'TEAM A';
+        const newRightName = upcomingRightName || 'TEAM B';
+
+        setCourtData(prevData => ({
+          ...prevData,
+          leftTeam: { name: newLeftName, score: 0 },
+          rightTeam: { name: newRightName, score: 0 },
+          upcomingLeft: 'TEAM A',
+          upcomingRight: 'TEAM B'
+        }));
+
+        // Update local input states
+        setLeftTeamName(newLeftName);
+        setRightTeamName(newRightName);
+        setUpcomingLeftName('TEAM A');
+        setUpcomingRightName('TEAM B');
+      }, 500);
+
+    } catch (error) {
+      console.error('COMPONENT: Error switching to next match:', error);
+      alert('Error switching to next match: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsSavingTeams(false);
+    }
+  };
+
   // Save upcoming teams function
   const saveUpcomingTeams = async () => {
     if (isSavingTeams) return;
@@ -406,6 +512,18 @@ export default function CourtFullScreenNew({ courtData: initialCourtData }: Cour
                 className={`px-6 sm:px-8 py-2 sm:py-3 text-white text-base sm:text-lg rounded-xl transition-all font-bold tracking-wide uppercase shadow-xl ${(isUpdating || isSavingMatch) ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 transform active:scale-95 hover:shadow-2xl'}`}
               >
                 Save Match
+              </button>
+            </div>
+
+            {/* Next Match Button */}
+            <div className="flex justify-center">
+              <button
+                onClick={switchToNextMatch}
+                disabled={isUpdating || isSavingTeams}
+                className={`px-6 sm:px-8 py-2 sm:py-3 text-white text-base sm:text-lg rounded-xl transition-all font-bold tracking-wide uppercase shadow-xl ${(isUpdating || isSavingTeams) ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 transform active:scale-95 hover:shadow-2xl'}`}
+                title="Move upcoming players to current match and reset scores"
+              >
+                {isSavingTeams ? 'Switching...' : '🔄 Next Match'}
               </button>
             </div>
           </div>
