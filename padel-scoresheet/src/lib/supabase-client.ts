@@ -1,4 +1,4 @@
-import { supabase, CourtRow } from './supabase'
+import { supabaseServer, CourtRow } from './supabase-server'
 import { CourtData } from './db-simple'
 
 // Convert database row to frontend format
@@ -21,7 +21,7 @@ function rowToCourtData(row: CourtRow): CourtData {
 
 
 export async function getAllCourts(): Promise<CourtData[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseServer
     .from('courts')
     .select('*')
     .order('court_number', { ascending: true })
@@ -35,7 +35,7 @@ export async function getAllCourts(): Promise<CourtData[]> {
 }
 
 export async function getCourt(courtNumber: number): Promise<CourtData | null> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseServer
     .from('courts')
     .select('*')
     .eq('court_number', courtNumber)
@@ -61,7 +61,7 @@ export async function updateCourtScore(courtNumber: number, side: 'left' | 'righ
 
   const updateField = side === 'left' ? 'left_team_score' : 'right_team_score'
 
-  const { error } = await supabase
+  const { error } = await supabaseServer
     .from('courts')
     .update({
       [updateField]: newScore,
@@ -78,7 +78,7 @@ export async function updateCourtScore(courtNumber: number, side: 'left' | 'righ
 }
 
 export async function resetCourtScores(courtNumber: number): Promise<boolean> {
-  const { error } = await supabase
+  const { error } = await supabaseServer
     .from('courts')
     .update({
       left_team_score: 0,
@@ -98,7 +98,7 @@ export async function resetCourtScores(courtNumber: number): Promise<boolean> {
 export async function updateTeamName(courtNumber: number, side: 'left' | 'right', name: string): Promise<boolean> {
   const updateField = side === 'left' ? 'left_team_name' : 'right_team_name'
 
-  const { error } = await supabase
+  const { error } = await supabaseServer
     .from('courts')
     .update({
       [updateField]: name.trim(),
@@ -117,7 +117,7 @@ export async function updateTeamName(courtNumber: number, side: 'left' | 'right'
 export async function updateUpcomingTeam(courtNumber: number, side: 'left' | 'right', name: string): Promise<boolean> {
   const updateField = side === 'left' ? 'upcoming_left' : 'upcoming_right'
 
-  const { error } = await supabase
+  const { error } = await supabaseServer
     .from('courts')
     .update({
       [updateField]: name.trim(),
@@ -134,7 +134,7 @@ export async function updateUpcomingTeam(courtNumber: number, side: 'left' | 'ri
 }
 
 export async function resetAllCourts(): Promise<boolean> {
-  const { error } = await supabase
+  const { error } = await supabaseServer
     .from('courts')
     .update({
       left_team_score: 0,
