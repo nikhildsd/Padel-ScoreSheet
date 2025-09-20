@@ -8,7 +8,7 @@ import {
   resetCourtScores,
   updateTeamName,
   updateUpcomingTeam
-} from '@/lib/actions';
+} from '@/lib/api-client';
 import { useDebounce } from '@/hooks/useDebounce';
 import Link from 'next/link';
 import Image from 'next/image';

@@ -3,13 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { CourtData } from '@/lib/db-simple';
-import { 
-  incrementScore, 
-  decrementScore, 
-  resetCourtScores, 
-  updateTeamName, 
-  updateUpcomingTeam 
-} from '@/lib/actions';
+import {
+  incrementScore,
+  decrementScore,
+  resetCourtScores,
+  updateTeamName,
+  updateUpcomingTeam
+} from '@/lib/api-client';
 import { useDebounce } from '@/hooks/useDebounce';
 
 interface CourtProps {

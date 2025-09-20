@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Court from '@/components/Court';
 import Image from 'next/image';
-import { getCourtData } from '@/lib/actions';
+import { getCourtData } from '@/lib/api-client';
 import { CourtData } from '@/lib/db-simple';
 
 export default function Home() {

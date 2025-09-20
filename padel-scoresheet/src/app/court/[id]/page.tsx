@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
-import { getCourtData } from '@/lib/actions';
+import { getCourtData } from '@/lib/api-client';
 import CourtFullScreen from '@/components/CourtFullScreen';
 import { CourtData } from '@/lib/db-simple';
 
