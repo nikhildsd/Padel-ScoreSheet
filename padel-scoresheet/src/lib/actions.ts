@@ -1,1 +1,1 @@
-export * from './actions-kv';
+export * from './actions-simple';

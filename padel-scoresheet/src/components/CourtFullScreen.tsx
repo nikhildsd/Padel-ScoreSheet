@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CourtData } from '@/lib/db';
+import { CourtData } from '@/lib/db-simple';
 import { 
   incrementScore, 
   decrementScore, 
