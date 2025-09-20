@@ -17,9 +17,10 @@ import Image from 'next/image';
 
 interface CourtFullScreenProps {
   courtData: CourtData;
+  onDataUpdate?: () => Promise<void>;
 }
 
-export default function CourtFullScreen({ courtData: initialCourtData }: CourtFullScreenProps) {
+export default function CourtFullScreen({ courtData: initialCourtData, onDataUpdate }: CourtFullScreenProps) {
   const router = useRouter();
   const [courtData, setCourtData] = useState(initialCourtData);
   const { courtNumber, leftTeam, rightTeam, upcomingLeft, upcomingRight } = courtData;
@@ -40,24 +41,6 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
   const debouncedRightTeamName = useDebounce(rightTeamName, 800);
   const debouncedUpcomingLeft = useDebounce(upcomingLeftName, 800);
   const debouncedUpcomingRight = useDebounce(upcomingRightName, 800);
-
-  // Refresh court data from server
-  const refreshCourtData = async () => {
-    try {
-      const result = await getSingleCourtData(courtNumber);
-      if (result.success && result.data) {
-        setCourtData(result.data);
-      }
-    } catch (error) {
-      console.error('Failed to refresh court data:', error);
-    }
-  };
-
-  // Set up polling for real-time updates every 1 second for better sync
-  useEffect(() => {
-    const interval = setInterval(refreshCourtData, 1000);
-    return () => clearInterval(interval);
-  }, [courtNumber]);
 
   // Update server when debounced values change
   useEffect(() => {
@@ -106,10 +89,12 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
     const result = await incrementScore(courtNumber, side);
     if (!result.success && result.error) {
       console.error('Failed to increment score:', result.error);
-      // Revert optimistic update on error
-      await refreshCourtData();
     }
-    // Let polling handle the sync - no need for additional refreshes
+
+    // Trigger parent to refresh data for real-time sync
+    if (onDataUpdate) {
+      await onDataUpdate();
+    }
   };
 
   const handleDecrementScore = async (side: 'left' | 'right') => {
@@ -126,10 +111,12 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
     const result = await decrementScore(courtNumber, side);
     if (!result.success && result.error) {
       console.error('Failed to decrement score:', result.error);
-      // Revert optimistic update on error
-      await refreshCourtData();
     }
-    // Let polling handle the sync - no need for additional refreshes
+
+    // Trigger parent to refresh data for real-time sync
+    if (onDataUpdate) {
+      await onDataUpdate();
+    }
   };
 
   const handleResetScores = async () => {
@@ -145,10 +132,12 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
     const result = await resetCourtScores(courtNumber);
     if (!result.success && result.error) {
       console.error('Failed to reset scores:', result.error);
-      // Revert optimistic update on error
-      await refreshCourtData();
     }
-    // Let polling handle the sync - no need for additional refreshes
+
+    // Trigger parent to refresh data for real-time sync
+    if (onDataUpdate) {
+      await onDataUpdate();
+    }
   };
 
   const handleTeamNameChange = async (side: 'left' | 'right', name: string) => {

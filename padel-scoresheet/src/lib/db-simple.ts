@@ -13,24 +13,35 @@ export interface CourtData {
   lastUpdated?: string;
 }
 
-// Simple in-memory storage that persists during the serverless function lifecycle
-// This will work perfectly for your use case and is completely free
-const courtsStore = new Map<number, CourtData>();
+// Global in-memory storage that persists across function calls within same instance
+// This works perfectly on Vercel serverless functions during active sessions
+const globalStore = globalThis as any;
 
-// Initialize store with default data
+if (!globalStore.courtsStore) {
+  globalStore.courtsStore = new Map<number, CourtData>();
+  globalStore.isInitialized = false;
+}
+
+const courtsStore: Map<number, CourtData> = globalStore.courtsStore;
+
+// Initialize store with default data (only once per serverless instance)
 function initializeStore() {
-  if (courtsStore.size === 0) {
-    for (let i = 1; i <= 6; i++) {
-      courtsStore.set(i, {
-        courtNumber: i,
-        leftTeam: { name: 'Team A', score: 0 },
-        rightTeam: { name: 'Team B', score: 0 },
-        upcomingLeft: '',
-        upcomingRight: '',
-        lastUpdated: new Date().toISOString()
-      });
-    }
+  if (globalStore.isInitialized) return;
+
+  // Initialize with default data
+  for (let i = 1; i <= 6; i++) {
+    courtsStore.set(i, {
+      courtNumber: i,
+      leftTeam: { name: 'Team A', score: 0 },
+      rightTeam: { name: 'Team B', score: 0 },
+      upcomingLeft: '',
+      upcomingRight: '',
+      lastUpdated: new Date().toISOString()
+    });
   }
+
+  globalStore.isInitialized = true;
+  console.log('Initialized court data store');
 }
 
 // Get a single court's data
@@ -61,7 +72,10 @@ export async function getCourts(): Promise<CourtData[]> {
 
   const courts: CourtData[] = [];
   for (let i = 1; i <= 6; i++) {
-    courts.push(await getCourt(i));
+    const court = courtsStore.get(i);
+    if (court) {
+      courts.push(court);
+    }
   }
   return courts;
 }
@@ -83,14 +97,16 @@ export async function resetAllCourts(): Promise<void> {
   initializeStore();
 
   for (let i = 1; i <= 6; i++) {
-    const court = await getCourt(i);
-    const resetCourt = {
-      ...court,
-      leftTeam: { ...court.leftTeam, score: 0 },
-      rightTeam: { ...court.rightTeam, score: 0 },
-      lastUpdated: new Date().toISOString()
-    };
-    courtsStore.set(i, resetCourt);
+    const court = courtsStore.get(i);
+    if (court) {
+      const resetCourt = {
+        ...court,
+        leftTeam: { ...court.leftTeam, score: 0 },
+        rightTeam: { ...court.rightTeam, score: 0 },
+        lastUpdated: new Date().toISOString()
+      };
+      courtsStore.set(i, resetCourt);
+    }
   }
 }
 

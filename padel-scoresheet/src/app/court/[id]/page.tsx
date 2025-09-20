@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
-import { getSingleCourtData } from '@/lib/actions';
+import { getCourtData } from '@/lib/actions';
 import CourtFullScreen from '@/components/CourtFullScreen';
 import { CourtData } from '@/lib/db-simple';
 
@@ -13,30 +13,22 @@ interface PageProps {
 }
 
 export default function CourtPage({ params }: PageProps) {
-  const [courtData, setCourtData] = useState<CourtData | null>(null);
+  const [allCourts, setAllCourts] = useState<CourtData[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFoundError, setNotFoundError] = useState(false);
 
   const courtId = parseInt(params.id);
 
-  // Fetch court data from server
-  const fetchCourtData = async () => {
+  // Validate court ID
+  if (isNaN(courtId) || courtId < 1 || courtId > 6) {
+    notFound();
+  }
+
+  // Fetch ALL court data from server (same as homepage)
+  const refreshAllCourtData = async () => {
     try {
-      if (isNaN(courtId) || courtId < 1 || courtId > 6) {
-        setNotFoundError(true);
-        setLoading(false);
-        return;
-      }
-
-      const result = await getSingleCourtData(courtId);
-
-      if (!result.success || !result.data) {
-        setNotFoundError(true);
-        setLoading(false);
-        return;
-      }
-
-      setCourtData(result.data);
+      const data = await getCourtData();
+      setAllCourts(data);
       setLoading(false);
     } catch (error) {
       console.error('Failed to fetch court data:', error);
@@ -47,8 +39,14 @@ export default function CourtPage({ params }: PageProps) {
 
   // Initial data load
   useEffect(() => {
-    fetchCourtData();
-  }, [courtId]);
+    refreshAllCourtData();
+  }, []);
+
+  // Set up polling for real-time updates every 1 second (same as homepage)
+  useEffect(() => {
+    const interval = setInterval(refreshAllCourtData, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   if (notFoundError) {
     notFound();
@@ -62,9 +60,12 @@ export default function CourtPage({ params }: PageProps) {
     );
   }
 
+  // Find the specific court data from all courts
+  const courtData = allCourts.find(court => court.courtNumber === courtId);
+
   if (!courtData) {
     notFound();
   }
 
-  return <CourtFullScreen courtData={courtData} />;
+  return <CourtFullScreen courtData={courtData} onDataUpdate={refreshAllCourtData} />;
 }
