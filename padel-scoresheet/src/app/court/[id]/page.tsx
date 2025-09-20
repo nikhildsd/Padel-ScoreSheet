@@ -10,13 +10,13 @@ interface PageProps {
 
 export default async function CourtPage({ params }: PageProps) {
   const courtId = parseInt(params.id);
-  
+
   if (isNaN(courtId) || courtId < 1 || courtId > 6) {
     notFound();
   }
 
   const result = await getSingleCourtData(courtId);
-  
+
   if (!result.success || !result.data) {
     notFound();
   }
