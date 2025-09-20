@@ -11,9 +11,11 @@ export default function Home() {
   const [courts, setCourts] = useState<CourtData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch court data from server
+  // Fetch court data from server with delay for database consistency
   const refreshCourtData = async () => {
     try {
+      // Add small delay to ensure database consistency
+      await new Promise(resolve => setTimeout(resolve, 500));
       const data = await getCourtData();
       setCourts(data);
       setLoading(false);
@@ -28,27 +30,15 @@ export default function Home() {
     refreshCourtData();
   }, []);
 
-  // Set up real-time subscription to Supabase
+  // Near real-time updates with periodic refresh
   useEffect(() => {
-    const channel = supabase
-      .channel('courts_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'courts'
-        },
-        () => {
-          // Refresh data when any change occurs
-          refreshCourtData();
-        }
-      )
-      .subscribe();
+    console.log('HOMEPAGE: Setting up periodic refresh every 3 seconds');
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const interval = setInterval(() => {
+      refreshCourtData();
+    }, 3000); // Refresh every 3 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {

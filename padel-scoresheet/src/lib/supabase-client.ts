@@ -1,4 +1,4 @@
-import { supabaseServer, CourtRow } from './supabase-server'
+import { supabaseServer, CourtRow, SavedMatchRow } from './supabase-server'
 import { CourtData } from './db-simple'
 
 // Convert database row to frontend format
@@ -21,17 +21,23 @@ function rowToCourtData(row: CourtRow): CourtData {
 
 
 export async function getAllCourts(): Promise<CourtData[]> {
+  console.log('getAllCourts called - fetching from Supabase');
+
   const { data, error } = await supabaseServer
     .from('courts')
     .select('*')
     .order('court_number', { ascending: true })
+
+  console.log('getAllCourts raw data from Supabase:', data);
 
   if (error) {
     console.error('Error fetching courts:', error)
     throw error
   }
 
-  return data.map(rowToCourtData)
+  const result = data.map(rowToCourtData);
+  console.log('getAllCourts converted data:', result);
+  return result;
 }
 
 export async function getCourt(courtNumber: number): Promise<CourtData | null> {
@@ -98,13 +104,19 @@ export async function resetCourtScores(courtNumber: number): Promise<boolean> {
 export async function updateTeamName(courtNumber: number, side: 'left' | 'right', name: string): Promise<boolean> {
   const updateField = side === 'left' ? 'left_team_name' : 'right_team_name'
 
-  const { error } = await supabaseServer
+  console.log('updateTeamName called with:', { courtNumber, side, name, updateField });
+
+  const { data, error } = await supabaseServer
     .from('courts')
     .update({
       [updateField]: name.trim(),
       last_updated: new Date().toISOString()
     })
     .eq('court_number', courtNumber)
+    .select()
+
+  console.log('updateTeamName result:', { data, error });
+  console.log('updateTeamName - what was actually written to DB:', data);
 
   if (error) {
     console.error('Error updating team name:', error)
@@ -149,4 +161,43 @@ export async function resetAllCourts(): Promise<boolean> {
   }
 
   return true
+}
+
+export async function saveMatch(courtNumber: number): Promise<boolean> {
+  // First get current court data
+  const court = await getCourt(courtNumber)
+  if (!court) return false
+
+  const { error } = await supabaseServer
+    .from('saved_matches')
+    .insert({
+      court_number: courtNumber,
+      left_team_name: court.leftTeam.name,
+      left_team_score: court.leftTeam.score,
+      right_team_name: court.rightTeam.name,
+      right_team_score: court.rightTeam.score,
+      upcoming_left: court.upcomingLeft,
+      upcoming_right: court.upcomingRight
+    })
+
+  if (error) {
+    console.error('Error saving match:', error)
+    return false
+  }
+
+  return true
+}
+
+export async function getAllSavedMatches(): Promise<SavedMatchRow[]> {
+  const { data, error } = await supabaseServer
+    .from('saved_matches')
+    .select('*')
+    .order('saved_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching saved matches:', error)
+    throw error
+  }
+
+  return data || []
 }

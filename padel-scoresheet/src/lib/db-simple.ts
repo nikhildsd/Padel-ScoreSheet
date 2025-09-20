@@ -29,90 +29,33 @@ if (!globalStore.courtsStore) {
 
 const courtsStore: Map<number, CourtData> = globalStore.courtsStore;
 
-// Initialize store with default data (only once per serverless instance)
+// DISABLED: Old in-memory system - now using Supabase
 function initializeStore() {
   if (globalStore.isInitialized) return;
 
-  // Initialize with default data
-  for (let i = 1; i <= 6; i++) {
-    courtsStore.set(i, {
-      courtNumber: i,
-      leftTeam: { name: 'Team A', score: 0 },
-      rightTeam: { name: 'Team B', score: 0 },
-      upcomingLeft: '',
-      upcomingRight: '',
-      lastUpdated: new Date().toISOString()
-    });
-  }
-
+  // DO NOT INITIALIZE - using Supabase instead
+  console.log('SKIPPING in-memory store initialization - using Supabase');
   globalStore.isInitialized = true;
-  console.log('Initialized court data store');
 }
 
-// Get a single court's data
+// DISABLED: Get a single court's data - now using Supabase
 export async function getCourt(courtNumber: number): Promise<CourtData> {
-  initializeStore();
-
-  const court = courtsStore.get(courtNumber);
-  if (!court) {
-    // This shouldn't happen with our initialization, but just in case
-    const defaultCourt = {
-      courtNumber,
-      leftTeam: { name: 'Team A', score: 0 },
-      rightTeam: { name: 'Team B', score: 0 },
-      upcomingLeft: '',
-      upcomingRight: '',
-      lastUpdated: new Date().toISOString()
-    };
-    courtsStore.set(courtNumber, defaultCourt);
-    return defaultCourt;
-  }
-
-  return court;
+  throw new Error('db-simple getCourt is disabled - use Supabase functions instead');
 }
 
-// Get all courts' data
+// DISABLED: Get all courts' data - now using Supabase
 export async function getCourts(): Promise<CourtData[]> {
-  initializeStore();
-
-  const courts: CourtData[] = [];
-  for (let i = 1; i <= 6; i++) {
-    const court = courtsStore.get(i);
-    if (court) {
-      courts.push(court);
-    }
-  }
-  return courts;
+  throw new Error('db-simple getCourts is disabled - use Supabase functions instead');
 }
 
-// Update a court's data
+// DISABLED: Update a court's data - now using Supabase
 export async function updateCourt(courtData: CourtData): Promise<void> {
-  initializeStore();
-
-  const timestampedData = {
-    ...courtData,
-    lastUpdated: new Date().toISOString()
-  };
-
-  courtsStore.set(courtData.courtNumber, timestampedData);
+  throw new Error('db-simple updateCourt is disabled - use Supabase functions instead');
 }
 
-// Reset all courts' scores
+// DISABLED: Reset all courts' scores - now using Supabase
 export async function resetAllCourts(): Promise<void> {
-  initializeStore();
-
-  for (let i = 1; i <= 6; i++) {
-    const court = courtsStore.get(i);
-    if (court) {
-      const resetCourt = {
-        ...court,
-        leftTeam: { ...court.leftTeam, score: 0 },
-        rightTeam: { ...court.rightTeam, score: 0 },
-        lastUpdated: new Date().toISOString()
-      };
-      courtsStore.set(i, resetCourt);
-    }
-  }
+  throw new Error('db-simple resetAllCourts is disabled - use Supabase functions instead');
 }
 
 // Health check for a specific court

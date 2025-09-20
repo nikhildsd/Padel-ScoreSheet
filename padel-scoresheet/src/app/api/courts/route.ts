@@ -81,8 +81,8 @@ export async function POST(request: NextRequest) {
       }
 
       case 'updateTeamName': {
-        if (!name || name.length > 20) {
-          return NextResponse.json({ success: false, error: 'Team name must be 1-20 characters' }, { status: 400 });
+        if (name && name.length > 20) {
+          return NextResponse.json({ success: false, error: 'Team name must be under 20 characters' }, { status: 400 });
         }
 
         const success = await updateTeamName(courtNumber, side, name);

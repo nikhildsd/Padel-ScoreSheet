@@ -6,10 +6,9 @@ import {
   incrementScore,
   decrementScore,
   resetCourtScores,
-  updateTeamName,
-  updateUpcomingTeam,
   saveMatch
 } from '@/lib/api-client';
+import { updateTeamNames } from '@/lib/teams-client';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -17,187 +16,156 @@ interface CourtFullScreenProps {
   courtData: CourtData;
 }
 
-export default function CourtFullScreen({ courtData: initialCourtData }: CourtFullScreenProps) {
+export default function CourtFullScreenNew({ courtData: initialCourtData }: CourtFullScreenProps) {
+  console.log('NEW COMPONENT: CourtFullScreenNew loaded for court', initialCourtData.courtNumber);
+  console.log('NEW COMPONENT: Initial team names from props:', {
+    left: initialCourtData.leftTeam.name,
+    right: initialCourtData.rightTeam.name
+  });
+
   const [courtData, setCourtData] = useState(initialCourtData);
   const [isUpdating, setIsUpdating] = useState(false);
   const { courtNumber, leftTeam, rightTeam, upcomingLeft, upcomingRight } = courtData;
 
-  // Update local state when props change
-  useEffect(() => {
-    setCourtData(initialCourtData);
-  }, [initialCourtData]);
-
-  // Local state for inputs - independent management with smart syncing
+  // Simple local state for team names - no complex syncing
   const [leftTeamName, setLeftTeamName] = useState(leftTeam.name);
   const [rightTeamName, setRightTeamName] = useState(rightTeam.name);
   const [upcomingLeftName, setUpcomingLeftName] = useState(upcomingLeft);
   const [upcomingRightName, setUpcomingRightName] = useState(upcomingRight);
 
-  // Track if names have been modified
-  const [teamNamesChanged, setTeamNamesChanged] = useState(false);
-  const [upcomingNamesChanged, setUpcomingNamesChanged] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSavingTeams, setIsSavingTeams] = useState(false);
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [isSavingMatch, setIsSavingMatch] = useState(false);
 
-
-  // Combined save functions
-  const saveCurrentTeamNames = async () => {
-    if (isSaving) return;
-    setIsSaving(true);
-
-    try {
-      // Only save the names that actually changed
-      const leftNameToSave = leftTeamName.trim();
-      const rightNameToSave = rightTeamName.trim();
-
-      console.log('Saving team names:', { left: leftNameToSave, right: rightNameToSave, courtNumber });
-
-      const promises = [];
-      if (leftNameToSave !== leftTeam.name) {
-        console.log('Left team name changed, saving:', leftNameToSave);
-        promises.push(updateTeamName(courtNumber, 'left', leftNameToSave));
-      }
-      if (rightNameToSave !== rightTeam.name) {
-        console.log('Right team name changed, saving:', rightNameToSave);
-        promises.push(updateTeamName(courtNumber, 'right', rightNameToSave));
-      }
-
-      if (promises.length === 0) {
-        console.log('No changes to save');
-        setIsSaving(false);
-        return;
-      }
-
-      const results = await Promise.all(promises);
-      console.log('Save results:', results);
-
-      if (results.every(result => result.success)) {
-        setTeamNamesChanged(false);
-        console.log('Team names saved successfully');
-        // Update local state to match what was actually saved
-        setLeftTeamName(leftNameToSave);
-        setRightTeamName(rightNameToSave);
-      } else {
-        console.error('Failed to save team names', results);
-      }
-    } finally {
-      // Keep saving state longer to prevent race conditions
-      setTimeout(() => setIsSaving(false), 1000);
-    }
-  };
-
-  const saveUpcomingTeamNames = async () => {
-    if (isSaving) return;
-    setIsSaving(true);
-
-    try {
-      // Save both upcoming team names
-      const leftResult = await updateUpcomingTeam(courtNumber, 'left', upcomingLeftName.trim());
-      const rightResult = await updateUpcomingTeam(courtNumber, 'right', upcomingRightName.trim());
-
-      if (leftResult.success && rightResult.success) {
-        setUpcomingNamesChanged(false);
-        console.log('Upcoming team names saved successfully');
-        // Small delay to ensure the server update has time to propagate
-        setTimeout(() => {
-          // Force a sync after successful save
-          setUpcomingLeftName(upcomingLeftName.trim());
-          setUpcomingRightName(upcomingRightName.trim());
-        }, 100);
-      } else {
-        console.error('Failed to save upcoming team names');
-      }
-    } finally {
-      // Keep saving state longer to prevent race conditions
-      setTimeout(() => setIsSaving(false), 1000);
-    }
-  };
-
-  // Smart syncing: only update team names from server when user isn't editing
+  // DISABLED - No automatic sync from server to prevent API calls
   useEffect(() => {
-    console.log('useEffect triggered:', {
-      leftTeamFromServer: leftTeam.name,
-      rightTeamFromServer: rightTeam.name,
-      leftTeamLocal: leftTeamName,
-      rightTeamLocal: rightTeamName,
-      teamNamesChanged,
-      isSaving
-    });
+    console.log('SCORE SYNC DISABLED - no automatic updates from server');
+  }, []);
 
-    // Only sync team names from server if user hasn't made local changes and isn't currently saving
-    if (!teamNamesChanged && !isSaving) {
-      console.log('SYNCING team names from server:', leftTeam.name, rightTeam.name);
-      setLeftTeamName(leftTeam.name);
-      setRightTeamName(rightTeam.name);
-    } else {
-      console.log('SKIPPING sync because teamNamesChanged:', teamNamesChanged, 'or isSaving:', isSaving);
-    }
+  // Simple save function - saves both names at once
+  const saveTeamNames = async () => {
+    if (isSavingTeams) return;
+    setIsSavingTeams(true);
 
-    // Only sync upcoming names from server if user hasn't made local changes and isn't currently saving
-    if (!upcomingNamesChanged && !isSaving) {
-      setUpcomingLeftName(upcomingLeft);
-      setUpcomingRightName(upcomingRight);
+    try {
+      console.log('NEW COMPONENT: Starting save for court', courtNumber);
+      console.log('NEW COMPONENT: Team names to save:', { leftTeamName, rightTeamName });
+
+      // Use the working simple API
+      const response = await fetch('/api/update-names', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courtNumber,
+          leftName: leftTeamName,
+          rightName: rightTeamName
+        })
+      });
+
+      const result = await response.json();
+      console.log('NEW COMPONENT: Save result:', result);
+
+      if (result.success) {
+        console.log('COMPONENT: Team names saved successfully');
+        // Add delay before fetching updated data
+        setTimeout(async () => {
+          // Update local state to reflect database changes
+          setCourtData(prevData => ({
+            ...prevData,
+            leftTeam: { ...prevData.leftTeam, name: leftTeamName },
+            rightTeam: { ...prevData.rightTeam, name: rightTeamName }
+          }));
+        }, 1000);
+      } else {
+        console.error('COMPONENT: Failed to save team names:', result.error);
+        alert('Failed to save team names: ' + result.error);
+      }
+    } catch (error) {
+      console.error('COMPONENT: Error saving team names:', error);
+      alert('Error saving team names');
+    } finally {
+      setIsSavingTeams(false);
     }
-  }, [leftTeam.name, rightTeam.name, upcomingLeft, upcomingRight, teamNamesChanged, upcomingNamesChanged, isSaving]);
+  };
 
   const handleIncrementScore = async (side: 'left' | 'right') => {
     if (isUpdating) return;
-
     setIsUpdating(true);
 
     try {
-      // Update server first, no optimistic updates to avoid conflicts
       const result = await incrementScore(courtNumber, side);
-
-      if (!result.success && result.error) {
+      if (result.success) {
+        // Update local state immediately with delay for database consistency
+        setTimeout(() => {
+          setCourtData(prevData => ({
+            ...prevData,
+            leftTeam: {
+              ...prevData.leftTeam,
+              score: side === 'left' ? prevData.leftTeam.score + 1 : prevData.leftTeam.score
+            },
+            rightTeam: {
+              ...prevData.rightTeam,
+              score: side === 'right' ? prevData.rightTeam.score + 1 : prevData.rightTeam.score
+            }
+          }));
+        }, 500);
+      } else {
         console.error('Failed to increment score:', result.error);
       }
-
-      // Real-time subscriptions will handle data refresh automatically
     } finally {
-      // Add small delay to prevent rapid clicking
       setTimeout(() => setIsUpdating(false), 300);
     }
   };
 
   const handleDecrementScore = async (side: 'left' | 'right') => {
     if (isUpdating) return;
-
     setIsUpdating(true);
 
     try {
-      // Update server first, no optimistic updates to avoid conflicts
       const result = await decrementScore(courtNumber, side);
-
-      if (!result.success && result.error) {
+      if (result.success) {
+        // Update local state immediately with delay for database consistency
+        setTimeout(() => {
+          setCourtData(prevData => ({
+            ...prevData,
+            leftTeam: {
+              ...prevData.leftTeam,
+              score: side === 'left' ? Math.max(0, prevData.leftTeam.score - 1) : prevData.leftTeam.score
+            },
+            rightTeam: {
+              ...prevData.rightTeam,
+              score: side === 'right' ? Math.max(0, prevData.rightTeam.score - 1) : prevData.rightTeam.score
+            }
+          }));
+        }, 500);
+      } else {
         console.error('Failed to decrement score:', result.error);
       }
-
-      // Real-time subscriptions will handle data refresh automatically
     } finally {
-      // Add small delay to prevent rapid clicking
       setTimeout(() => setIsUpdating(false), 300);
     }
   };
 
   const handleResetScores = async () => {
     if (isUpdating) return;
-
     setIsUpdating(true);
 
     try {
-      // Update server first, no optimistic updates to avoid conflicts
       const result = await resetCourtScores(courtNumber);
-
-      if (!result.success && result.error) {
+      if (result.success) {
+        // Update local state immediately with delay for database consistency
+        setTimeout(() => {
+          setCourtData(prevData => ({
+            ...prevData,
+            leftTeam: { ...prevData.leftTeam, score: 0 },
+            rightTeam: { ...prevData.rightTeam, score: 0 }
+          }));
+        }, 500);
+      } else {
         console.error('Failed to reset scores:', result.error);
       }
-
-      // Real-time subscriptions will handle data refresh automatically
     } finally {
-      // Add small delay to prevent rapid clicking
-      setTimeout(() => setIsUpdating(false), 300);
+      setTimeout(() => setIsUpdating(false), 500);
     }
   };
 
@@ -206,11 +174,9 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
 
     try {
       const result = await saveMatch(courtNumber);
-
       if (result.success) {
         setShowSaveConfirmation(false);
         console.log('Match saved successfully');
-        // Optionally show success message or reset scores
       } else {
         console.error('Failed to save match:', result.error);
       }
@@ -219,52 +185,52 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
     }
   };
 
+  // Check if team names have changed
+  const teamNamesChanged = leftTeamName !== leftTeam.name || rightTeamName !== rightTeam.name;
+
   return (
     <div className="min-h-screen w-screen overflow-hidden flex flex-col p-2 sm:p-4" style={{backgroundColor: '#04362d'}}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
-        <Link 
-          href="/" 
+        <Link
+          href="/"
           className="flex items-center gap-2 sm:gap-3 text-white hover:opacity-80 transition-opacity"
         >
           <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-full flex items-center justify-center">
-            <Image 
-              src="/brand-logo.jpg" 
-              alt="Brand Logo" 
-              width={20} 
-              height={20} 
+            <Image
+              src="/brand-logo.jpg"
+              alt="Brand Logo"
+              width={20}
+              height={20}
               className="rounded-full object-cover sm:w-6 sm:h-6"
             />
           </div>
           <span className="text-sm sm:text-lg font-medium">← Back</span>
         </Link>
-        
+
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-light text-white tracking-wider uppercase">
           Court {courtNumber}
         </h1>
-        
-        <div className="w-16 sm:w-32"></div> {/* Spacer for centering */}
+
+        <div className="w-16 sm:w-32"></div>
       </div>
 
       {/* Main Court Interface */}
       <div className="flex-1 flex items-center justify-center">
         <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-8 lg:p-12 w-full max-w-5xl border-2 sm:border-4 border-white">
-          
+
           {/* Current Game Header */}
           <div className="text-center mb-4 sm:mb-8">
             <h2 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-4" style={{color: '#04362d'}}>CURRENT GAME</h2>
           </div>
-          
+
           {/* Team Names */}
           <div className="flex flex-col gap-4 sm:gap-6 mb-8 sm:mb-12">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
               <input
                 type="text"
                 value={leftTeamName}
-                onChange={(e) => {
-                  setLeftTeamName(e.target.value);
-                  setTeamNamesChanged(e.target.value !== leftTeam.name || rightTeamName !== rightTeam.name);
-                }}
+                onChange={(e) => setLeftTeamName(e.target.value)}
                 className="w-full sm:max-w-xs px-3 sm:px-6 py-2 sm:py-4 text-lg sm:text-2xl border-2 sm:border-4 rounded-xl sm:rounded-2xl text-center font-bold bg-white focus:bg-gray-50 transition-all"
                 style={{borderColor: teamNamesChanged ? '#f59e0b' : '#04362d', color: '#04362d'}}
                 placeholder="Left Team"
@@ -276,10 +242,7 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
               <input
                 type="text"
                 value={rightTeamName}
-                onChange={(e) => {
-                  setRightTeamName(e.target.value);
-                  setTeamNamesChanged(leftTeamName !== leftTeam.name || e.target.value !== rightTeam.name);
-                }}
+                onChange={(e) => setRightTeamName(e.target.value)}
                 className="w-full sm:max-w-xs px-3 sm:px-6 py-2 sm:py-4 text-lg sm:text-2xl border-2 sm:border-4 rounded-xl sm:rounded-2xl text-center font-bold bg-white focus:bg-gray-50 transition-all"
                 style={{borderColor: teamNamesChanged ? '#f59e0b' : '#04362d', color: '#04362d'}}
                 placeholder="Right Team"
@@ -290,11 +253,11 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
             {teamNamesChanged && (
               <div className="text-center">
                 <button
-                  onClick={saveCurrentTeamNames}
-                  disabled={isSaving}
-                  className={`px-6 py-2 text-white rounded-lg font-bold transition-colors ${isSaving ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}
+                  onClick={saveTeamNames}
+                  disabled={isSavingTeams}
+                  className={`px-6 py-2 text-white rounded-lg font-bold transition-colors ${isSavingTeams ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}
                 >
-                  {isSaving ? 'SAVING...' : 'SAVE TEAM NAMES'}
+                  {isSavingTeams ? 'SAVING...' : 'SAVE TEAM NAMES'}
                 </button>
               </div>
             )}
@@ -381,51 +344,23 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
             </div>
           </div>
 
-          {/* Upcoming Game */}
+          {/* Upcoming Game - Simple display only */}
           <div className="border-t-2 sm:border-t-4 pt-4 sm:pt-8" style={{borderColor: '#04362d'}}>
             <div className="text-base sm:text-xl font-bold mb-4 sm:mb-6 text-center tracking-wide uppercase" style={{color: '#04362d'}}>Next Game</div>
             <div className="flex flex-col gap-3 sm:gap-4">
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-                <input
-                  type="text"
-                  value={upcomingLeftName}
-                  onChange={(e) => {
-                    setUpcomingLeftName(e.target.value);
-                    setUpcomingNamesChanged(e.target.value !== upcomingLeft || upcomingRightName !== upcomingRight);
-                  }}
-                  className="w-full sm:max-w-xs px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg sm:rounded-xl text-center text-base sm:text-lg bg-white focus:bg-gray-50 transition-all font-bold"
-                  style={{borderColor: upcomingNamesChanged ? '#f59e0b' : '#04362d', color: '#04362d'}}
-                  placeholder="Next Team A"
-                  maxLength={15}
-                />
+                <div className="w-full sm:max-w-xs px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg sm:rounded-xl text-center text-base sm:text-lg bg-gray-100 font-bold"
+                     style={{borderColor: '#04362d', color: '#04362d'}}>
+                  {upcomingLeft || 'Next Team A'}
+                </div>
 
                 <span className="text-lg sm:text-xl font-bold px-2" style={{color: '#04362d'}}>VS</span>
 
-                <input
-                  type="text"
-                  value={upcomingRightName}
-                  onChange={(e) => {
-                    setUpcomingRightName(e.target.value);
-                    setUpcomingNamesChanged(upcomingLeftName !== upcomingLeft || e.target.value !== upcomingRight);
-                  }}
-                  className="w-full sm:max-w-xs px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg sm:rounded-xl text-center text-base sm:text-lg bg-white focus:bg-gray-50 transition-all font-bold"
-                  style={{borderColor: upcomingNamesChanged ? '#f59e0b' : '#04362d', color: '#04362d'}}
-                  placeholder="Next Team B"
-                  maxLength={15}
-                />
-              </div>
-
-              {upcomingNamesChanged && (
-                <div className="text-center">
-                  <button
-                    onClick={saveUpcomingTeamNames}
-                    disabled={isSaving}
-                    className={`px-4 py-2 text-white rounded-lg font-bold transition-colors text-sm ${isSaving ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}
-                  >
-                    {isSaving ? 'SAVING...' : 'SAVE UPCOMING TEAMS'}
-                  </button>
+                <div className="w-full sm:max-w-xs px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg sm:rounded-xl text-center text-base sm:text-lg bg-gray-100 font-bold"
+                     style={{borderColor: '#04362d', color: '#04362d'}}>
+                  {upcomingRight || 'Next Team B'}
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>

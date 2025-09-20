@@ -17,3 +17,16 @@ export type CourtRow = {
   last_updated: string
   created_at: string
 }
+
+export type SavedMatchRow = {
+  id: number
+  court_number: number
+  left_team_name: string
+  left_team_score: number
+  right_team_name: string
+  right_team_score: number
+  upcoming_left: string
+  upcoming_right: string
+  saved_at: string
+  created_at: string
+}

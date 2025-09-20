@@ -3,27 +3,32 @@
 import { useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import { getCourtData } from '@/lib/api-client';
-import CourtFullScreen from '@/components/CourtFullScreen';
+import CourtFullScreenNew from '@/components/CourtFullScreenNew';
 import { CourtData } from '@/lib/db-simple';
 import { supabase } from '@/lib/supabase';
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export default function CourtPage({ params }: PageProps) {
-  const [allCourts, setAllCourts] = useState<CourtData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [notFoundError, setNotFoundError] = useState(false);
-
-  const courtId = parseInt(params.id);
+export default async function CourtPage({ params }: PageProps) {
+  const resolvedParams = await params;
+  const courtId = parseInt(resolvedParams.id);
 
   // Validate court ID
   if (isNaN(courtId) || courtId < 1 || courtId > 6) {
     notFound();
   }
+
+  return <CourtPageClient courtId={courtId} />;
+}
+
+function CourtPageClient({ courtId }: { courtId: number }) {
+  const [allCourts, setAllCourts] = useState<CourtData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFoundError, setNotFoundError] = useState(false);
 
   // Fetch ALL court data from server (same as homepage)
   const refreshAllCourtData = async () => {
@@ -43,28 +48,11 @@ export default function CourtPage({ params }: PageProps) {
     refreshAllCourtData();
   }, []);
 
-  // Set up real-time subscription to Supabase
+  // DISABLED - Real-time subscription disabled to reduce API calls
   useEffect(() => {
-    const channel = supabase
-      .channel('courts_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'courts'
-        },
-        () => {
-          // Refresh data when any change occurs
-          refreshAllCourtData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+    console.log('COURT PAGE: Real-time subscription DISABLED for court', courtId);
+    // No subscription - static data only
+  }, [courtId]);
 
   if (notFoundError) {
     notFound();
@@ -85,5 +73,5 @@ export default function CourtPage({ params }: PageProps) {
     notFound();
   }
 
-  return <CourtFullScreen courtData={courtData} />;
+  return <CourtFullScreenNew courtData={courtData} />;
 }

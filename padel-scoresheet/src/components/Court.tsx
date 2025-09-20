@@ -83,13 +83,13 @@ export default function Court({ courtData }: CourtProps) {
           <div className="flex-1 px-2 py-1 text-xs border-2 rounded-md text-center font-bold bg-gray-100 truncate cursor-not-allowed"
                style={{borderColor: '#04362d', color: '#04362d'}}
                title="Edit team names in individual court page">
-            {leftTeam.name || 'Team A'}
+            {leftTeam.name}
           </div>
           <span className="text-xs font-bold px-1" style={{color: '#04362d'}}>VS</span>
           <div className="flex-1 px-2 py-1 text-xs border-2 rounded-md text-center font-bold bg-gray-100 truncate cursor-not-allowed"
                style={{borderColor: '#04362d', color: '#04362d'}}
                title="Edit team names in individual court page">
-            {rightTeam.name || 'Team B'}
+            {rightTeam.name}
           </div>
         </div>
 

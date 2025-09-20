@@ -21,14 +21,8 @@ export async function getCourtData(): Promise<CourtData[]> {
     return result.data;
   } catch (error) {
     console.error('Error fetching court data:', error);
-    // Return default data as fallback
-    return Array.from({ length: 6 }, (_, i) => ({
-      courtNumber: i + 1,
-      leftTeam: { name: 'Team A', score: 0 },
-      rightTeam: { name: 'Team B', score: 0 },
-      upcomingLeft: '',
-      upcomingRight: ''
-    }));
+    // Return empty array on error - no fallback data
+    return [];
   }
 }
 
@@ -186,5 +180,24 @@ export async function resetAllCourtScores(): Promise<ApiResponse> {
   } catch (error) {
     console.error('Error resetting all scores:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Failed to reset all scores' };
+  }
+}
+
+export async function saveMatch(courtNumber: number): Promise<ApiResponse> {
+  try {
+    const response = await fetch('/api/courts/save-match', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        courtNumber
+      }),
+    });
+
+    return await handleApiResponse(response);
+  } catch (error) {
+    console.error('Error saving match:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to save match' };
   }
 }
