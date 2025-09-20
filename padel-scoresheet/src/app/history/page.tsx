@@ -172,7 +172,7 @@ export default function HistoryPage() {
                           📝 Match Notes
                         </div>
                         <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-400 shadow-sm">
-                          <p className="text-sm text-gray-700 leading-relaxed italic">"{match.notes}"</p>
+                          <p className="text-sm text-gray-700 leading-relaxed italic">&ldquo;{match.notes}&rdquo;</p>
                         </div>
                       </div>
                     )}
