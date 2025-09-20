@@ -18,6 +18,7 @@ interface CourtProps {
 
 export default function Court({ courtData }: CourtProps) {
   const { courtNumber, leftTeam, rightTeam, upcomingLeft, upcomingRight } = courtData;
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Local state for inputs to provide immediate feedback
   const [leftTeamName, setLeftTeamName] = useState(leftTeam.name);
@@ -82,23 +83,44 @@ export default function Court({ courtData }: CourtProps) {
   }, [leftTeam.name, rightTeam.name, upcomingLeft, upcomingRight]);
 
   const handleIncrementScore = async (side: 'left' | 'right') => {
-    const result = await incrementScore(courtNumber, side);
-    if (!result.success && result.error) {
-      console.error('Failed to increment score:', result.error);
+    if (isUpdating) return; // Prevent spam clicking
+    setIsUpdating(true);
+
+    try {
+      const result = await incrementScore(courtNumber, side);
+      if (!result.success && result.error) {
+        console.error('Failed to increment score:', result.error);
+      }
+    } finally {
+      setTimeout(() => setIsUpdating(false), 300);
     }
   };
 
   const handleDecrementScore = async (side: 'left' | 'right') => {
-    const result = await decrementScore(courtNumber, side);
-    if (!result.success && result.error) {
-      console.error('Failed to decrement score:', result.error);
+    if (isUpdating) return; // Prevent spam clicking
+    setIsUpdating(true);
+
+    try {
+      const result = await decrementScore(courtNumber, side);
+      if (!result.success && result.error) {
+        console.error('Failed to decrement score:', result.error);
+      }
+    } finally {
+      setTimeout(() => setIsUpdating(false), 300);
     }
   };
 
   const handleResetScores = async () => {
-    const result = await resetCourtScores(courtNumber);
-    if (!result.success && result.error) {
-      console.error('Failed to reset scores:', result.error);
+    if (isUpdating) return; // Prevent spam clicking
+    setIsUpdating(true);
+
+    try {
+      const result = await resetCourtScores(courtNumber);
+      if (!result.success && result.error) {
+        console.error('Failed to reset scores:', result.error);
+      }
+    } finally {
+      setTimeout(() => setIsUpdating(false), 500);
     }
   };
 
@@ -147,14 +169,16 @@ export default function Court({ courtData }: CourtProps) {
             <div className="flex gap-1 mb-1">
               <button
                 onClick={() => handleDecrementScore('left')}
-                className="w-5 h-5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all text-xs flex items-center justify-center font-bold shadow-md transform active:scale-90"
+                disabled={isUpdating}
+                className={`w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 active:scale-90'}`}
               >
                 −
               </button>
               <button
                 onClick={() => handleIncrementScore('left')}
-                className="w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform active:scale-90"
-                style={{backgroundColor: '#04362d'}}
+                disabled={isUpdating}
+                className={`w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'active:scale-90'}`}
+                style={{backgroundColor: isUpdating ? '#9CA3AF' : '#04362d'}}
               >
                 +
               </button>
@@ -177,14 +201,16 @@ export default function Court({ courtData }: CourtProps) {
             <div className="flex gap-1 mb-1">
               <button
                 onClick={() => handleDecrementScore('right')}
-                className="w-5 h-5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all text-xs flex items-center justify-center font-bold shadow-md transform active:scale-90"
+                disabled={isUpdating}
+                className={`w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 active:scale-90'}`}
               >
                 −
               </button>
               <button
                 onClick={() => handleIncrementScore('right')}
-                className="w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform active:scale-90"
-                style={{backgroundColor: '#04362d'}}
+                disabled={isUpdating}
+                className={`w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'active:scale-90'}`}
+                style={{backgroundColor: isUpdating ? '#9CA3AF' : '#04362d'}}
               >
                 +
               </button>
@@ -197,10 +223,11 @@ export default function Court({ courtData }: CourtProps) {
 
         <button
           onClick={handleResetScores}
-          className="w-full px-2 py-1 text-white text-xs rounded-md transition-all transform active:scale-95 font-bold tracking-wide uppercase shadow-md"
-          style={{backgroundColor: '#04362d'}}
+          disabled={isUpdating}
+          className={`w-full px-2 py-1 text-white text-xs rounded-md transition-all font-bold tracking-wide uppercase shadow-md ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'transform active:scale-95'}`}
+          style={{backgroundColor: isUpdating ? '#9CA3AF' : '#04362d'}}
         >
-          Reset
+          {isUpdating ? 'Updating...' : 'Reset'}
         </button>
       </div>
 

@@ -20,6 +20,7 @@ interface CourtFullScreenProps {
 
 export default function CourtFullScreen({ courtData: initialCourtData, onDataUpdate }: CourtFullScreenProps) {
   const [courtData, setCourtData] = useState(initialCourtData);
+  const [isUpdating, setIsUpdating] = useState(false);
   const { courtNumber, leftTeam, rightTeam, upcomingLeft, upcomingRight } = courtData;
 
   // Update local state when props change (from parent component)
@@ -88,67 +89,100 @@ export default function CourtFullScreen({ courtData: initialCourtData, onDataUpd
   }, [leftTeam.name, rightTeam.name, upcomingLeft, upcomingRight]);
 
   const handleIncrementScore = async (side: 'left' | 'right') => {
-    // Optimistic update - immediately update local state
-    const updatedCourtData = { ...courtData };
-    if (side === 'left') {
-      updatedCourtData.leftTeam.score = Math.min(99, updatedCourtData.leftTeam.score + 1);
-    } else {
-      updatedCourtData.rightTeam.score = Math.min(99, updatedCourtData.rightTeam.score + 1);
-    }
-    setCourtData(updatedCourtData);
+    if (isUpdating) return; // Prevent spam clicking
 
-    // Update server
-    const result = await incrementScore(courtNumber, side);
-    if (!result.success && result.error) {
-      console.error('Failed to increment score:', result.error);
-    }
+    setIsUpdating(true);
 
-    // Trigger parent to refresh data for real-time sync
-    if (onDataUpdate) {
-      await onDataUpdate();
+    try {
+      // Optimistic update - immediately update local state
+      const updatedCourtData = { ...courtData };
+      if (side === 'left') {
+        updatedCourtData.leftTeam.score = Math.min(99, updatedCourtData.leftTeam.score + 1);
+      } else {
+        updatedCourtData.rightTeam.score = Math.min(99, updatedCourtData.rightTeam.score + 1);
+      }
+      setCourtData(updatedCourtData);
+
+      // Update server
+      const result = await incrementScore(courtNumber, side);
+      if (!result.success && result.error) {
+        console.error('Failed to increment score:', result.error);
+        // Revert optimistic update on error
+        setCourtData(courtData);
+      }
+
+      // Trigger parent to refresh data for real-time sync
+      if (onDataUpdate) {
+        await onDataUpdate();
+      }
+    } finally {
+      // Add small delay to prevent rapid clicking
+      setTimeout(() => setIsUpdating(false), 300);
     }
   };
 
   const handleDecrementScore = async (side: 'left' | 'right') => {
-    // Optimistic update - immediately update local state
-    const updatedCourtData = { ...courtData };
-    if (side === 'left') {
-      updatedCourtData.leftTeam.score = Math.max(0, updatedCourtData.leftTeam.score - 1);
-    } else {
-      updatedCourtData.rightTeam.score = Math.max(0, updatedCourtData.rightTeam.score - 1);
-    }
-    setCourtData(updatedCourtData);
+    if (isUpdating) return; // Prevent spam clicking
 
-    // Update server
-    const result = await decrementScore(courtNumber, side);
-    if (!result.success && result.error) {
-      console.error('Failed to decrement score:', result.error);
-    }
+    setIsUpdating(true);
 
-    // Trigger parent to refresh data for real-time sync
-    if (onDataUpdate) {
-      await onDataUpdate();
+    try {
+      // Optimistic update - immediately update local state
+      const updatedCourtData = { ...courtData };
+      if (side === 'left') {
+        updatedCourtData.leftTeam.score = Math.max(0, updatedCourtData.leftTeam.score - 1);
+      } else {
+        updatedCourtData.rightTeam.score = Math.max(0, updatedCourtData.rightTeam.score - 1);
+      }
+      setCourtData(updatedCourtData);
+
+      // Update server
+      const result = await decrementScore(courtNumber, side);
+      if (!result.success && result.error) {
+        console.error('Failed to decrement score:', result.error);
+        // Revert optimistic update on error
+        setCourtData(courtData);
+      }
+
+      // Trigger parent to refresh data for real-time sync
+      if (onDataUpdate) {
+        await onDataUpdate();
+      }
+    } finally {
+      // Add small delay to prevent rapid clicking
+      setTimeout(() => setIsUpdating(false), 300);
     }
   };
 
   const handleResetScores = async () => {
-    // Optimistic update - immediately reset scores locally
-    const updatedCourtData = {
-      ...courtData,
-      leftTeam: { ...courtData.leftTeam, score: 0 },
-      rightTeam: { ...courtData.rightTeam, score: 0 }
-    };
-    setCourtData(updatedCourtData);
+    if (isUpdating) return; // Prevent spam clicking
 
-    // Update server
-    const result = await resetCourtScores(courtNumber);
-    if (!result.success && result.error) {
-      console.error('Failed to reset scores:', result.error);
-    }
+    setIsUpdating(true);
 
-    // Trigger parent to refresh data for real-time sync
-    if (onDataUpdate) {
-      await onDataUpdate();
+    try {
+      // Optimistic update - immediately reset scores locally
+      const updatedCourtData = {
+        ...courtData,
+        leftTeam: { ...courtData.leftTeam, score: 0 },
+        rightTeam: { ...courtData.rightTeam, score: 0 }
+      };
+      setCourtData(updatedCourtData);
+
+      // Update server
+      const result = await resetCourtScores(courtNumber);
+      if (!result.success && result.error) {
+        console.error('Failed to reset scores:', result.error);
+        // Revert optimistic update on error
+        setCourtData(courtData);
+      }
+
+      // Trigger parent to refresh data for real-time sync
+      if (onDataUpdate) {
+        await onDataUpdate();
+      }
+    } finally {
+      // Add small delay to prevent rapid clicking
+      setTimeout(() => setIsUpdating(false), 500);
     }
   };
 
@@ -218,14 +252,16 @@ export default function CourtFullScreen({ courtData: initialCourtData, onDataUpd
               <div className="flex gap-2 sm:gap-3 lg:gap-4 mb-3 sm:mb-4 lg:mb-6">
                 <button
                   onClick={() => handleDecrementScore('left')}
-                  className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all text-lg sm:text-xl lg:text-2xl flex items-center justify-center font-bold shadow-lg transform active:scale-90"
+                  disabled={isUpdating}
+                  className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-white rounded-full transition-all text-lg sm:text-xl lg:text-2xl flex items-center justify-center font-bold shadow-lg transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 active:scale-90'}`}
                 >
                   −
                 </button>
                 <button
                   onClick={() => handleIncrementScore('left')}
-                  className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-white rounded-full transition-all text-lg sm:text-xl lg:text-2xl flex items-center justify-center font-bold shadow-lg transform active:scale-90"
-                  style={{backgroundColor: '#04362d'}}
+                  disabled={isUpdating}
+                  className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-white rounded-full transition-all text-lg sm:text-xl lg:text-2xl flex items-center justify-center font-bold shadow-lg transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'active:scale-90'}`}
+                  style={{backgroundColor: isUpdating ? '#9CA3AF' : '#04362d'}}
                 >
                   +
                 </button>
@@ -249,14 +285,16 @@ export default function CourtFullScreen({ courtData: initialCourtData, onDataUpd
               <div className="flex gap-2 sm:gap-3 lg:gap-4 mb-3 sm:mb-4 lg:mb-6">
                 <button
                   onClick={() => handleDecrementScore('right')}
-                  className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all text-lg sm:text-xl lg:text-2xl flex items-center justify-center font-bold shadow-lg transform active:scale-90"
+                  disabled={isUpdating}
+                  className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-white rounded-full transition-all text-lg sm:text-xl lg:text-2xl flex items-center justify-center font-bold shadow-lg transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 active:scale-90'}`}
                 >
                   −
                 </button>
                 <button
                   onClick={() => handleIncrementScore('right')}
-                  className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-white rounded-full transition-all text-lg sm:text-xl lg:text-2xl flex items-center justify-center font-bold shadow-lg transform active:scale-90"
-                  style={{backgroundColor: '#04362d'}}
+                  disabled={isUpdating}
+                  className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-white rounded-full transition-all text-lg sm:text-xl lg:text-2xl flex items-center justify-center font-bold shadow-lg transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'active:scale-90'}`}
+                  style={{backgroundColor: isUpdating ? '#9CA3AF' : '#04362d'}}
                 >
                   +
                 </button>
@@ -271,10 +309,11 @@ export default function CourtFullScreen({ courtData: initialCourtData, onDataUpd
           <div className="text-center mb-6 sm:mb-12">
             <button
               onClick={handleResetScores}
-              className="px-6 sm:px-12 py-2 sm:py-4 text-white text-base sm:text-xl rounded-xl sm:rounded-2xl transition-all transform active:scale-95 font-bold tracking-wide uppercase shadow-xl hover:shadow-2xl"
-              style={{backgroundColor: '#04362d'}}
+              disabled={isUpdating}
+              className={`px-6 sm:px-12 py-2 sm:py-4 text-white text-base sm:text-xl rounded-xl sm:rounded-2xl transition-all font-bold tracking-wide uppercase shadow-xl ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'transform active:scale-95 hover:shadow-2xl'}`}
+              style={{backgroundColor: isUpdating ? '#9CA3AF' : '#04362d'}}
             >
-              Reset Scores
+              {isUpdating ? 'Updating...' : 'Reset Scores'}
             </button>
           </div>
 
