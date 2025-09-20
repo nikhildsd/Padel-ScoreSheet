@@ -69,6 +69,9 @@ export default function CourtFullScreen({ courtData }: CourtFullScreenProps) {
     const result = await incrementScore(courtNumber, side);
     if (!result.success && result.error) {
       console.error('Failed to increment score:', result.error);
+    } else {
+      // Refresh the page to show updated data
+      window.location.reload();
     }
   };
 
@@ -76,6 +79,9 @@ export default function CourtFullScreen({ courtData }: CourtFullScreenProps) {
     const result = await decrementScore(courtNumber, side);
     if (!result.success && result.error) {
       console.error('Failed to decrement score:', result.error);
+    } else {
+      // Refresh the page to show updated data
+      window.location.reload();
     }
   };
 
@@ -83,6 +89,9 @@ export default function CourtFullScreen({ courtData }: CourtFullScreenProps) {
     const result = await resetCourtScores(courtNumber);
     if (!result.success && result.error) {
       console.error('Failed to reset scores:', result.error);
+    } else {
+      // Refresh the page to show updated data
+      window.location.reload();
     }
   };
 
