@@ -48,9 +48,9 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
     }
   };
 
-  // Set up polling for real-time updates every 3 seconds (reduced frequency to avoid conflicts)
+  // Set up polling for real-time updates every 1 second for better sync
   useEffect(() => {
-    const interval = setInterval(refreshCourtData, 3000);
+    const interval = setInterval(refreshCourtData, 1000);
     return () => clearInterval(interval);
   }, [courtNumber]);
 
@@ -97,19 +97,14 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
     }
     setCourtData(updatedCourtData);
 
-    // Then update server
+    // Update server
     const result = await incrementScore(courtNumber, side);
     if (!result.success && result.error) {
       console.error('Failed to increment score:', result.error);
       // Revert optimistic update on error
       await refreshCourtData();
-    } else {
-      // Ensure we have the latest server data
-      setTimeout(async () => {
-        await refreshCourtData();
-        router.refresh();
-      }, 100);
     }
+    // Let polling handle the sync - no need for additional refreshes
   };
 
   const handleDecrementScore = async (side: 'left' | 'right') => {
@@ -122,19 +117,14 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
     }
     setCourtData(updatedCourtData);
 
-    // Then update server
+    // Update server
     const result = await decrementScore(courtNumber, side);
     if (!result.success && result.error) {
       console.error('Failed to decrement score:', result.error);
       // Revert optimistic update on error
       await refreshCourtData();
-    } else {
-      // Ensure we have the latest server data
-      setTimeout(async () => {
-        await refreshCourtData();
-        router.refresh();
-      }, 100);
     }
+    // Let polling handle the sync - no need for additional refreshes
   };
 
   const handleResetScores = async () => {
@@ -146,19 +136,14 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
     };
     setCourtData(updatedCourtData);
 
-    // Then update server
+    // Update server
     const result = await resetCourtScores(courtNumber);
     if (!result.success && result.error) {
       console.error('Failed to reset scores:', result.error);
       // Revert optimistic update on error
       await refreshCourtData();
-    } else {
-      // Ensure we have the latest server data
-      setTimeout(async () => {
-        await refreshCourtData();
-        router.refresh();
-      }, 100);
     }
+    // Let polling handle the sync - no need for additional refreshes
   };
 
   const handleTeamNameChange = async (side: 'left' | 'right', name: string) => {

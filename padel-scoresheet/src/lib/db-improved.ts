@@ -132,6 +132,17 @@ export async function getCourts(): Promise<CourtData[]> {
   return await withLock(readCourtsData);
 }
 
+export async function getCourt(courtNumber: number): Promise<CourtData> {
+  const courts = await getCourts();
+  const court = courts.find(c => c.courtNumber === courtNumber);
+
+  if (!court) {
+    throw new Error(`Court ${courtNumber} not found`);
+  }
+
+  return court;
+}
+
 export async function updateCourt(courtData: CourtData): Promise<void> {
   await withLock(async () => {
     const courts = await readCourtsData();
@@ -164,12 +175,25 @@ export async function resetAllCourts(): Promise<void> {
 export async function checkDataIntegrity(): Promise<boolean> {
   try {
     const courts = await getCourts();
-    return courts.length === 6 && courts.every(court => 
-      court.courtNumber >= 1 && 
+    return courts.length === 6 && courts.every(court =>
+      court.courtNumber >= 1 &&
       court.courtNumber <= 6 &&
       typeof court.leftTeam.score === 'number' &&
       typeof court.rightTeam.score === 'number'
     );
+  } catch {
+    return false;
+  }
+}
+
+export async function checkCourtIntegrity(courtNumber: number): Promise<boolean> {
+  try {
+    const court = await getCourt(courtNumber);
+    return court.courtNumber === courtNumber &&
+           typeof court.leftTeam.score === 'number' &&
+           typeof court.rightTeam.score === 'number' &&
+           court.leftTeam.score >= 0 &&
+           court.rightTeam.score >= 0;
   } catch {
     return false;
   }

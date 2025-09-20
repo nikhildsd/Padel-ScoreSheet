@@ -27,9 +27,9 @@ export default function Home() {
     refreshCourtData();
   }, []);
 
-  // Set up polling for real-time updates every 2 seconds
+  // Set up polling for real-time updates every 1 second for better sync
   useEffect(() => {
-    const interval = setInterval(refreshCourtData, 2000);
+    const interval = setInterval(refreshCourtData, 1000);
     return () => clearInterval(interval);
   }, []);
 
