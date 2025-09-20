@@ -1,16 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { CourtData } from '@/lib/db-simple';
 import {
   incrementScore,
   decrementScore,
-  resetCourtScores,
-  updateTeamName,
-  updateUpcomingTeam
+  resetCourtScores
 } from '@/lib/api-client';
-import { useDebounce } from '@/hooks/useDebounce';
 
 interface CourtProps {
   courtData: CourtData;
@@ -20,67 +17,9 @@ export default function Court({ courtData }: CourtProps) {
   const { courtNumber, leftTeam, rightTeam, upcomingLeft, upcomingRight } = courtData;
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Local state for inputs to provide immediate feedback
-  const [leftTeamName, setLeftTeamName] = useState(leftTeam.name);
-  const [rightTeamName, setRightTeamName] = useState(rightTeam.name);
-  const [upcomingLeftName, setUpcomingLeftName] = useState(upcomingLeft);
-  const [upcomingRightName, setUpcomingRightName] = useState(upcomingRight);
+  // No local state needed - team names are read-only on homepage
 
-  // Debounced values - only trigger server updates after user stops typing for 1.5 seconds
-  const debouncedLeftTeamName = useDebounce(leftTeamName, 1500);
-  const debouncedRightTeamName = useDebounce(rightTeamName, 1500);
-  const debouncedUpcomingLeft = useDebounce(upcomingLeftName, 1500);
-  const debouncedUpcomingRight = useDebounce(upcomingRightName, 1500);
-
-  // Define callback functions first
-  const handleTeamNameChange = useCallback(async (side: 'left' | 'right', name: string) => {
-    const result = await updateTeamName(courtNumber, side, name);
-    if (!result.success && result.error) {
-      console.error('Failed to update team name:', result.error);
-      // You could show a toast notification here
-    }
-  }, [courtNumber]);
-
-  const handleUpcomingTeamChange = useCallback(async (side: 'left' | 'right', name: string) => {
-    const result = await updateUpcomingTeam(courtNumber, side, name);
-    if (!result.success && result.error) {
-      console.error('Failed to update upcoming team:', result.error);
-      // You could show a toast notification here
-    }
-  }, [courtNumber]);
-
-  // Update server when debounced values change, but only if user actually typed something
-  useEffect(() => {
-    if (debouncedLeftTeamName !== leftTeam.name && debouncedLeftTeamName.trim() !== '') {
-      handleTeamNameChange('left', debouncedLeftTeamName);
-    }
-  }, [debouncedLeftTeamName, leftTeam.name, handleTeamNameChange]);
-
-  useEffect(() => {
-    if (debouncedRightTeamName !== rightTeam.name && debouncedRightTeamName.trim() !== '') {
-      handleTeamNameChange('right', debouncedRightTeamName);
-    }
-  }, [debouncedRightTeamName, rightTeam.name, handleTeamNameChange]);
-
-  useEffect(() => {
-    if (debouncedUpcomingLeft !== upcomingLeft) {
-      handleUpcomingTeamChange('left', debouncedUpcomingLeft);
-    }
-  }, [debouncedUpcomingLeft, upcomingLeft, handleUpcomingTeamChange]);
-
-  useEffect(() => {
-    if (debouncedUpcomingRight !== upcomingRight) {
-      handleUpcomingTeamChange('right', debouncedUpcomingRight);
-    }
-  }, [debouncedUpcomingRight, upcomingRight, handleUpcomingTeamChange]);
-
-  // Update local state when props change (from server updates)
-  useEffect(() => {
-    setLeftTeamName(leftTeam.name);
-    setRightTeamName(rightTeam.name);
-    setUpcomingLeftName(upcomingLeft);
-    setUpcomingRightName(upcomingRight);
-  }, [leftTeam.name, rightTeam.name, upcomingLeft, upcomingRight]);
+  // No team name editing logic needed - homepage is read-only
 
   const handleIncrementScore = async (side: 'left' | 'right') => {
     if (isUpdating) return;
@@ -139,27 +78,19 @@ export default function Court({ courtData }: CourtProps) {
       
       {/* Current Game */}
       <div className="mb-2 flex-1 flex flex-col justify-between">        
-        {/* Team Name Inputs */}
+        {/* Team Names - Read Only */}
         <div className="flex items-center gap-1 mb-2">
-          <input
-            type="text"
-            value={leftTeamName}
-            onChange={(e) => setLeftTeamName(e.target.value)}
-            className="flex-1 px-2 py-1 text-xs border-2 rounded-md text-center font-bold bg-white focus:bg-gray-50 transition-all truncate"
-            style={{borderColor: '#04362d', color: '#04362d'}}
-            placeholder="Team A"
-            maxLength={12}
-          />
+          <div className="flex-1 px-2 py-1 text-xs border-2 rounded-md text-center font-bold bg-gray-100 truncate cursor-not-allowed"
+               style={{borderColor: '#04362d', color: '#04362d'}}
+               title="Edit team names in individual court page">
+            {leftTeam.name || 'Team A'}
+          </div>
           <span className="text-xs font-bold px-1" style={{color: '#04362d'}}>VS</span>
-          <input
-            type="text"
-            value={rightTeamName}
-            onChange={(e) => setRightTeamName(e.target.value)}
-            className="flex-1 px-2 py-1 text-xs border-2 rounded-md text-center font-bold bg-white focus:bg-gray-50 transition-all truncate"
-            style={{borderColor: '#04362d', color: '#04362d'}}
-            placeholder="Team B"
-            maxLength={12}
-          />
+          <div className="flex-1 px-2 py-1 text-xs border-2 rounded-md text-center font-bold bg-gray-100 truncate cursor-not-allowed"
+               style={{borderColor: '#04362d', color: '#04362d'}}
+               title="Edit team names in individual court page">
+            {rightTeam.name || 'Team B'}
+          </div>
         </div>
 
         {/* Score Display and Controls */}
@@ -235,25 +166,17 @@ export default function Court({ courtData }: CourtProps) {
       <div className="pt-2 border-t flex-shrink-0" style={{borderColor: '#04362d'}}>
         <div className="text-xs font-bold mb-1 text-center tracking-wide uppercase" style={{color: '#04362d'}}>Next</div>
         <div className="flex items-center gap-1">
-          <input
-            type="text"
-            value={upcomingLeftName}
-            onChange={(e) => setUpcomingLeftName(e.target.value)}
-            className="flex-1 px-2 py-1 border rounded-md text-center text-xs bg-white focus:bg-gray-50 transition-all truncate font-bold"
-            style={{borderColor: '#04362d', color: '#04362d'}}
-            placeholder="Next A"
-            maxLength={10}
-          />
+          <div className="flex-1 px-2 py-1 border rounded-md text-center text-xs bg-gray-100 truncate font-bold cursor-not-allowed"
+               style={{borderColor: '#04362d', color: '#04362d'}}
+               title="Edit upcoming teams in individual court page">
+            {upcomingLeft || 'Next A'}
+          </div>
           <span className="text-xs font-bold" style={{color: '#04362d'}}>v</span>
-          <input
-            type="text"
-            value={upcomingRightName}
-            onChange={(e) => setUpcomingRightName(e.target.value)}
-            className="flex-1 px-2 py-1 border rounded-md text-center text-xs bg-white focus:bg-gray-50 transition-all truncate font-bold"
-            style={{borderColor: '#04362d', color: '#04362d'}}
-            placeholder="Next B"
-            maxLength={10}
-          />
+          <div className="flex-1 px-2 py-1 border rounded-md text-center text-xs bg-gray-100 truncate font-bold cursor-not-allowed"
+               style={{borderColor: '#04362d', color: '#04362d'}}
+               title="Edit upcoming teams in individual court page">
+            {upcomingRight || 'Next B'}
+          </div>
         </div>
       </div>
     </div>

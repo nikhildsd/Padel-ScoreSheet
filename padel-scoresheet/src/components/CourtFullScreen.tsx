@@ -33,54 +33,63 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
   const [upcomingRightName, setUpcomingRightName] = useState(upcomingRight);
 
   // Track if names have been modified
-  const [leftTeamNameChanged, setLeftTeamNameChanged] = useState(false);
-  const [rightTeamNameChanged, setRightTeamNameChanged] = useState(false);
-  const [upcomingLeftChanged, setUpcomingLeftChanged] = useState(false);
-  const [upcomingRightChanged, setUpcomingRightChanged] = useState(false);
+  const [teamNamesChanged, setTeamNamesChanged] = useState(false);
+  const [upcomingNamesChanged, setUpcomingNamesChanged] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
 
-  // Manual save functions
-  const saveLeftTeamName = async () => {
-    if (leftTeamName.trim() === '') return;
-    const result = await updateTeamName(courtNumber, 'left', leftTeamName);
-    if (result.success) {
-      setLeftTeamNameChanged(false);
+  // Combined save functions
+  const saveCurrentTeamNames = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+
+    try {
+      // Save both team names
+      const leftResult = await updateTeamName(courtNumber, 'left', leftTeamName.trim() || 'Team A');
+      const rightResult = await updateTeamName(courtNumber, 'right', rightTeamName.trim() || 'Team B');
+
+      if (leftResult.success && rightResult.success) {
+        setTeamNamesChanged(false);
+        console.log('Team names saved successfully');
+      } else {
+        console.error('Failed to save team names');
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const saveRightTeamName = async () => {
-    if (rightTeamName.trim() === '') return;
-    const result = await updateTeamName(courtNumber, 'right', rightTeamName);
-    if (result.success) {
-      setRightTeamNameChanged(false);
+  const saveUpcomingTeamNames = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+
+    try {
+      // Save both upcoming team names
+      const leftResult = await updateUpcomingTeam(courtNumber, 'left', upcomingLeftName.trim());
+      const rightResult = await updateUpcomingTeam(courtNumber, 'right', upcomingRightName.trim());
+
+      if (leftResult.success && rightResult.success) {
+        setUpcomingNamesChanged(false);
+        console.log('Upcoming team names saved successfully');
+      } else {
+        console.error('Failed to save upcoming team names');
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const saveUpcomingLeft = async () => {
-    const result = await updateUpcomingTeam(courtNumber, 'left', upcomingLeftName);
-    if (result.success) {
-      setUpcomingLeftChanged(false);
-    }
-  };
-
-  const saveUpcomingRight = async () => {
-    const result = await updateUpcomingTeam(courtNumber, 'right', upcomingRightName);
-    if (result.success) {
-      setUpcomingRightChanged(false);
-    }
-  };
-
-  // Update local state when props change (from server updates) and reset change flags
+  // Only update local state from server if user hasn't made any changes
   useEffect(() => {
-    setLeftTeamName(leftTeam.name);
-    setRightTeamName(rightTeam.name);
-    setUpcomingLeftName(upcomingLeft);
-    setUpcomingRightName(upcomingRight);
-    setLeftTeamNameChanged(false);
-    setRightTeamNameChanged(false);
-    setUpcomingLeftChanged(false);
-    setUpcomingRightChanged(false);
-  }, [leftTeam.name, rightTeam.name, upcomingLeft, upcomingRight]);
+    if (!teamNamesChanged) {
+      setLeftTeamName(leftTeam.name);
+      setRightTeamName(rightTeam.name);
+    }
+    if (!upcomingNamesChanged) {
+      setUpcomingLeftName(upcomingLeft);
+      setUpcomingRightName(upcomingRight);
+    }
+  }, [leftTeam.name, rightTeam.name, upcomingLeft, upcomingRight, teamNamesChanged, upcomingNamesChanged]);
 
   const handleIncrementScore = async (side: 'left' | 'right') => {
     if (isUpdating) return;
@@ -181,54 +190,46 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
           {/* Team Names */}
           <div className="flex flex-col gap-4 sm:gap-6 mb-8 sm:mb-12">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
-              <div className="flex flex-col items-center gap-2">
-                <input
-                  type="text"
-                  value={leftTeamName}
-                  onChange={(e) => {
-                    setLeftTeamName(e.target.value);
-                    setLeftTeamNameChanged(e.target.value !== leftTeam.name);
-                  }}
-                  className="w-full sm:max-w-xs px-3 sm:px-6 py-2 sm:py-4 text-lg sm:text-2xl border-2 sm:border-4 rounded-xl sm:rounded-2xl text-center font-bold bg-white focus:bg-gray-50 transition-all"
-                  style={{borderColor: leftTeamNameChanged ? '#f59e0b' : '#04362d', color: '#04362d'}}
-                  placeholder="Team A"
-                  maxLength={20}
-                />
-                {leftTeamNameChanged && (
-                  <button
-                    onClick={saveLeftTeamName}
-                    className="px-3 py-1 text-xs bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors font-bold"
-                  >
-                    SAVE
-                  </button>
-                )}
-              </div>
+              <input
+                type="text"
+                value={leftTeamName}
+                onChange={(e) => {
+                  setLeftTeamName(e.target.value);
+                  setTeamNamesChanged(e.target.value !== leftTeam.name || rightTeamName !== rightTeam.name);
+                }}
+                className="w-full sm:max-w-xs px-3 sm:px-6 py-2 sm:py-4 text-lg sm:text-2xl border-2 sm:border-4 rounded-xl sm:rounded-2xl text-center font-bold bg-white focus:bg-gray-50 transition-all"
+                style={{borderColor: teamNamesChanged ? '#f59e0b' : '#04362d', color: '#04362d'}}
+                placeholder="Team A"
+                maxLength={20}
+              />
 
               <span className="text-xl sm:text-3xl font-bold px-2 sm:px-4" style={{color: '#04362d'}}>VS</span>
 
-              <div className="flex flex-col items-center gap-2">
-                <input
-                  type="text"
-                  value={rightTeamName}
-                  onChange={(e) => {
-                    setRightTeamName(e.target.value);
-                    setRightTeamNameChanged(e.target.value !== rightTeam.name);
-                  }}
-                  className="w-full sm:max-w-xs px-3 sm:px-6 py-2 sm:py-4 text-lg sm:text-2xl border-2 sm:border-4 rounded-xl sm:rounded-2xl text-center font-bold bg-white focus:bg-gray-50 transition-all"
-                  style={{borderColor: rightTeamNameChanged ? '#f59e0b' : '#04362d', color: '#04362d'}}
-                  placeholder="Team B"
-                  maxLength={20}
-                />
-                {rightTeamNameChanged && (
-                  <button
-                    onClick={saveRightTeamName}
-                    className="px-3 py-1 text-xs bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors font-bold"
-                  >
-                    SAVE
-                  </button>
-                )}
-              </div>
+              <input
+                type="text"
+                value={rightTeamName}
+                onChange={(e) => {
+                  setRightTeamName(e.target.value);
+                  setTeamNamesChanged(leftTeamName !== leftTeam.name || e.target.value !== rightTeam.name);
+                }}
+                className="w-full sm:max-w-xs px-3 sm:px-6 py-2 sm:py-4 text-lg sm:text-2xl border-2 sm:border-4 rounded-xl sm:rounded-2xl text-center font-bold bg-white focus:bg-gray-50 transition-all"
+                style={{borderColor: teamNamesChanged ? '#f59e0b' : '#04362d', color: '#04362d'}}
+                placeholder="Team B"
+                maxLength={20}
+              />
             </div>
+
+            {teamNamesChanged && (
+              <div className="text-center">
+                <button
+                  onClick={saveCurrentTeamNames}
+                  disabled={isSaving}
+                  className={`px-6 py-2 text-white rounded-lg font-bold transition-colors ${isSaving ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}
+                >
+                  {isSaving ? 'SAVING...' : 'SAVE TEAM NAMES'}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Score Display and Controls */}
@@ -306,54 +307,48 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
           {/* Upcoming Game */}
           <div className="border-t-2 sm:border-t-4 pt-4 sm:pt-8" style={{borderColor: '#04362d'}}>
             <div className="text-base sm:text-xl font-bold mb-4 sm:mb-6 text-center tracking-wide uppercase" style={{color: '#04362d'}}>Next Game</div>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-              <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col gap-3 sm:gap-4">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                 <input
                   type="text"
                   value={upcomingLeftName}
                   onChange={(e) => {
                     setUpcomingLeftName(e.target.value);
-                    setUpcomingLeftChanged(e.target.value !== upcomingLeft);
+                    setUpcomingNamesChanged(e.target.value !== upcomingLeft || upcomingRightName !== upcomingRight);
                   }}
                   className="w-full sm:max-w-xs px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg sm:rounded-xl text-center text-base sm:text-lg bg-white focus:bg-gray-50 transition-all font-bold"
-                  style={{borderColor: upcomingLeftChanged ? '#f59e0b' : '#04362d', color: '#04362d'}}
+                  style={{borderColor: upcomingNamesChanged ? '#f59e0b' : '#04362d', color: '#04362d'}}
                   placeholder="Next Team A"
                   maxLength={15}
                 />
-                {upcomingLeftChanged && (
-                  <button
-                    onClick={saveUpcomingLeft}
-                    className="px-2 py-1 text-xs bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors font-bold"
-                  >
-                    SAVE
-                  </button>
-                )}
-              </div>
 
-              <span className="text-lg sm:text-xl font-bold px-2" style={{color: '#04362d'}}>VS</span>
+                <span className="text-lg sm:text-xl font-bold px-2" style={{color: '#04362d'}}>VS</span>
 
-              <div className="flex flex-col items-center gap-2">
                 <input
                   type="text"
                   value={upcomingRightName}
                   onChange={(e) => {
                     setUpcomingRightName(e.target.value);
-                    setUpcomingRightChanged(e.target.value !== upcomingRight);
+                    setUpcomingNamesChanged(upcomingLeftName !== upcomingLeft || e.target.value !== upcomingRight);
                   }}
                   className="w-full sm:max-w-xs px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg sm:rounded-xl text-center text-base sm:text-lg bg-white focus:bg-gray-50 transition-all font-bold"
-                  style={{borderColor: upcomingRightChanged ? '#f59e0b' : '#04362d', color: '#04362d'}}
+                  style={{borderColor: upcomingNamesChanged ? '#f59e0b' : '#04362d', color: '#04362d'}}
                   placeholder="Next Team B"
                   maxLength={15}
                 />
-                {upcomingRightChanged && (
-                  <button
-                    onClick={saveUpcomingRight}
-                    className="px-2 py-1 text-xs bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors font-bold"
-                  >
-                    SAVE
-                  </button>
-                )}
               </div>
+
+              {upcomingNamesChanged && (
+                <div className="text-center">
+                  <button
+                    onClick={saveUpcomingTeamNames}
+                    disabled={isSaving}
+                    className={`px-4 py-2 text-white rounded-lg font-bold transition-colors text-sm ${isSaving ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}
+                  >
+                    {isSaving ? 'SAVING...' : 'SAVE UPCOMING TEAMS'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
