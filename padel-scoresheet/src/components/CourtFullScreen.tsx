@@ -48,9 +48,9 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
     }
   };
 
-  // Set up polling for real-time updates every 2 seconds
+  // Set up polling for real-time updates every 3 seconds (reduced frequency to avoid conflicts)
   useEffect(() => {
-    const interval = setInterval(refreshCourtData, 2000);
+    const interval = setInterval(refreshCourtData, 3000);
     return () => clearInterval(interval);
   }, [courtNumber]);
 
@@ -88,35 +88,76 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
   }, [leftTeam.name, rightTeam.name, upcomingLeft, upcomingRight]);
 
   const handleIncrementScore = async (side: 'left' | 'right') => {
+    // Optimistic update - immediately update local state
+    const updatedCourtData = { ...courtData };
+    if (side === 'left') {
+      updatedCourtData.leftTeam.score = Math.min(99, updatedCourtData.leftTeam.score + 1);
+    } else {
+      updatedCourtData.rightTeam.score = Math.min(99, updatedCourtData.rightTeam.score + 1);
+    }
+    setCourtData(updatedCourtData);
+
+    // Then update server
     const result = await incrementScore(courtNumber, side);
     if (!result.success && result.error) {
       console.error('Failed to increment score:', result.error);
-    } else {
-      // Immediately refresh data to show changes
+      // Revert optimistic update on error
       await refreshCourtData();
-      router.refresh();
+    } else {
+      // Ensure we have the latest server data
+      setTimeout(async () => {
+        await refreshCourtData();
+        router.refresh();
+      }, 100);
     }
   };
 
   const handleDecrementScore = async (side: 'left' | 'right') => {
+    // Optimistic update - immediately update local state
+    const updatedCourtData = { ...courtData };
+    if (side === 'left') {
+      updatedCourtData.leftTeam.score = Math.max(0, updatedCourtData.leftTeam.score - 1);
+    } else {
+      updatedCourtData.rightTeam.score = Math.max(0, updatedCourtData.rightTeam.score - 1);
+    }
+    setCourtData(updatedCourtData);
+
+    // Then update server
     const result = await decrementScore(courtNumber, side);
     if (!result.success && result.error) {
       console.error('Failed to decrement score:', result.error);
-    } else {
-      // Immediately refresh data to show changes
+      // Revert optimistic update on error
       await refreshCourtData();
-      router.refresh();
+    } else {
+      // Ensure we have the latest server data
+      setTimeout(async () => {
+        await refreshCourtData();
+        router.refresh();
+      }, 100);
     }
   };
 
   const handleResetScores = async () => {
+    // Optimistic update - immediately reset scores locally
+    const updatedCourtData = {
+      ...courtData,
+      leftTeam: { ...courtData.leftTeam, score: 0 },
+      rightTeam: { ...courtData.rightTeam, score: 0 }
+    };
+    setCourtData(updatedCourtData);
+
+    // Then update server
     const result = await resetCourtScores(courtNumber);
     if (!result.success && result.error) {
       console.error('Failed to reset scores:', result.error);
-    } else {
-      // Immediately refresh data to show changes
+      // Revert optimistic update on error
       await refreshCourtData();
-      router.refresh();
+    } else {
+      // Ensure we have the latest server data
+      setTimeout(async () => {
+        await refreshCourtData();
+        router.refresh();
+      }, 100);
     }
   };
 
