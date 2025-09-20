@@ -436,8 +436,8 @@ export default function CourtFullScreenNew({ courtData: initialCourtData }: Cour
           </div>
 
           {/* Score Display and Controls */}
-          <div className="flex flex-col lg:flex-row items-center justify-center gap-6 sm:gap-8 lg:gap-12 mb-8 sm:mb-12">
-            {/* Left Team Score */}
+          <div className="flex flex-col items-center justify-center gap-6 sm:gap-8 mb-8 sm:mb-12">
+            {/* Top Team Score */}
             <div className="flex flex-col items-center bg-gray-50 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 border-2 sm:border-4 shadow-xl" style={{borderColor: '#04362d'}}>
               <div className="flex gap-2 sm:gap-3 lg:gap-4 mb-3 sm:mb-4 lg:mb-6">
                 <button
@@ -461,16 +461,16 @@ export default function CourtFullScreenNew({ courtData: initialCourtData }: Cour
               </div>
             </div>
 
-            {/* Court Rectangle */}
-            <div className="w-32 h-20 sm:w-40 sm:h-24 lg:w-48 lg:h-32 rounded-xl sm:rounded-2xl relative shadow-2xl border-2 sm:border-4 border-white" style={{backgroundColor: '#04362d'}}>
+            {/* Vertical Court Rectangle */}
+            <div className="w-20 h-32 sm:w-24 sm:h-40 lg:w-32 lg:h-48 rounded-xl sm:rounded-2xl relative shadow-2xl border-2 sm:border-4 border-white" style={{backgroundColor: '#04362d'}}>
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-full h-0.5 sm:h-1 bg-white opacity-80"></div>
-                <div className="absolute w-0.5 sm:w-1 h-full bg-white opacity-80"></div>
+                <div className="h-full w-0.5 sm:w-1 bg-white opacity-80"></div>
+                <div className="absolute h-0.5 sm:h-1 w-full bg-white opacity-80"></div>
               </div>
               <div className="absolute inset-2 sm:inset-4 border border-white sm:border-2 rounded-md sm:rounded-lg opacity-60"></div>
             </div>
 
-            {/* Right Team Score */}
+            {/* Bottom Team Score */}
             <div className="flex flex-col items-center bg-gray-50 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 border-2 sm:border-4 shadow-xl" style={{borderColor: '#04362d'}}>
               <div className="flex gap-2 sm:gap-3 lg:gap-4 mb-3 sm:mb-4 lg:mb-6">
                 <button
