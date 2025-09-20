@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { CourtData } from '@/lib/db-simple';
-import { 
-  incrementScore, 
-  decrementScore, 
-  resetCourtScores, 
-  updateTeamName, 
-  updateUpcomingTeam 
+import {
+  incrementScore,
+  decrementScore,
+  resetCourtScores,
+  updateTeamName,
+  updateUpcomingTeam,
+  getSingleCourtData
 } from '@/lib/actions';
 import { useDebounce } from '@/hooks/useDebounce';
 import Link from 'next/link';
@@ -17,9 +19,11 @@ interface CourtFullScreenProps {
   courtData: CourtData;
 }
 
-export default function CourtFullScreen({ courtData }: CourtFullScreenProps) {
+export default function CourtFullScreen({ courtData: initialCourtData }: CourtFullScreenProps) {
+  const router = useRouter();
+  const [courtData, setCourtData] = useState(initialCourtData);
   const { courtNumber, leftTeam, rightTeam, upcomingLeft, upcomingRight } = courtData;
-  
+
   // Local state for inputs to provide immediate feedback
   const [leftTeamName, setLeftTeamName] = useState(leftTeam.name);
   const [rightTeamName, setRightTeamName] = useState(rightTeam.name);
@@ -31,6 +35,24 @@ export default function CourtFullScreen({ courtData }: CourtFullScreenProps) {
   const debouncedRightTeamName = useDebounce(rightTeamName, 800);
   const debouncedUpcomingLeft = useDebounce(upcomingLeftName, 800);
   const debouncedUpcomingRight = useDebounce(upcomingRightName, 800);
+
+  // Refresh court data from server
+  const refreshCourtData = async () => {
+    try {
+      const result = await getSingleCourtData(courtNumber);
+      if (result.success && result.data) {
+        setCourtData(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to refresh court data:', error);
+    }
+  };
+
+  // Set up polling for real-time updates every 2 seconds
+  useEffect(() => {
+    const interval = setInterval(refreshCourtData, 2000);
+    return () => clearInterval(interval);
+  }, [courtNumber]);
 
   // Update server when debounced values change
   useEffect(() => {
@@ -70,8 +92,9 @@ export default function CourtFullScreen({ courtData }: CourtFullScreenProps) {
     if (!result.success && result.error) {
       console.error('Failed to increment score:', result.error);
     } else {
-      // Refresh the page to show updated data
-      window.location.reload();
+      // Immediately refresh data to show changes
+      await refreshCourtData();
+      router.refresh();
     }
   };
 
@@ -80,8 +103,9 @@ export default function CourtFullScreen({ courtData }: CourtFullScreenProps) {
     if (!result.success && result.error) {
       console.error('Failed to decrement score:', result.error);
     } else {
-      // Refresh the page to show updated data
-      window.location.reload();
+      // Immediately refresh data to show changes
+      await refreshCourtData();
+      router.refresh();
     }
   };
 
@@ -90,8 +114,9 @@ export default function CourtFullScreen({ courtData }: CourtFullScreenProps) {
     if (!result.success && result.error) {
       console.error('Failed to reset scores:', result.error);
     } else {
-      // Refresh the page to show updated data
-      window.location.reload();
+      // Immediately refresh data to show changes
+      await refreshCourtData();
+      router.refresh();
     }
   };
 

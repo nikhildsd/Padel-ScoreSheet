@@ -18,7 +18,7 @@ interface CourtProps {
 
 export default function Court({ courtData }: CourtProps) {
   const { courtNumber, leftTeam, rightTeam, upcomingLeft, upcomingRight } = courtData;
-  
+
   // Local state for inputs to provide immediate feedback
   const [leftTeamName, setLeftTeamName] = useState(leftTeam.name);
   const [rightTeamName, setRightTeamName] = useState(rightTeam.name);
