@@ -183,7 +183,7 @@ export async function resetAllCourtScores(): Promise<ApiResponse> {
   }
 }
 
-export async function saveMatch(courtNumber: number): Promise<ApiResponse> {
+export async function saveMatch(courtNumber: number, notes?: string): Promise<ApiResponse> {
   try {
     const response = await fetch('/api/courts/save-match', {
       method: 'POST',
@@ -191,7 +191,8 @@ export async function saveMatch(courtNumber: number): Promise<ApiResponse> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        courtNumber
+        courtNumber,
+        notes
       }),
     });
 

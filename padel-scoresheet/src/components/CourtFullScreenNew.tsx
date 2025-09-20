@@ -36,6 +36,7 @@ export default function CourtFullScreenNew({ courtData: initialCourtData }: Cour
   const [isSavingTeams, setIsSavingTeams] = useState(false);
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [isSavingMatch, setIsSavingMatch] = useState(false);
+  const [matchNotes, setMatchNotes] = useState('');
 
   // DISABLED - No automatic sync from server to prevent API calls
   useEffect(() => {
@@ -83,6 +84,70 @@ export default function CourtFullScreenNew({ courtData: initialCourtData }: Cour
     } catch (error) {
       console.error('COMPONENT: Error saving team names:', error);
       alert('Error saving team names');
+    } finally {
+      setIsSavingTeams(false);
+    }
+  };
+
+  // Save upcoming teams function
+  const saveUpcomingTeams = async () => {
+    if (isSavingTeams) return;
+    setIsSavingTeams(true);
+
+    try {
+      console.log('COMPONENT: Saving upcoming teams for court', courtNumber);
+      console.log('COMPONENT: Upcoming teams to save:', { upcomingLeftName, upcomingRightName });
+
+      // Update upcoming left team
+      const leftResponse = await fetch('/api/courts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateUpcomingTeam',
+          courtNumber,
+          side: 'left',
+          name: upcomingLeftName
+        })
+      });
+
+      const leftResult = await leftResponse.json();
+
+      if (!leftResult.success) {
+        throw new Error(`Failed to update left upcoming team: ${leftResult.error}`);
+      }
+
+      // Update upcoming right team
+      const rightResponse = await fetch('/api/courts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateUpcomingTeam',
+          courtNumber,
+          side: 'right',
+          name: upcomingRightName
+        })
+      });
+
+      const rightResult = await rightResponse.json();
+
+      if (!rightResult.success) {
+        throw new Error(`Failed to update right upcoming team: ${rightResult.error}`);
+      }
+
+      console.log('COMPONENT: Upcoming teams saved successfully');
+
+      // Update local state to reflect changes
+      setTimeout(() => {
+        setCourtData(prevData => ({
+          ...prevData,
+          upcomingLeft: upcomingLeftName,
+          upcomingRight: upcomingRightName
+        }));
+      }, 500);
+
+    } catch (error) {
+      console.error('COMPONENT: Error saving upcoming teams:', error);
+      alert('Error saving upcoming teams: ' + error.message);
     } finally {
       setIsSavingTeams(false);
     }
@@ -173,9 +238,10 @@ export default function CourtFullScreenNew({ courtData: initialCourtData }: Cour
     setIsSavingMatch(true);
 
     try {
-      const result = await saveMatch(courtNumber);
+      const result = await saveMatch(courtNumber, matchNotes);
       if (result.success) {
         setShowSaveConfirmation(false);
+        setMatchNotes(''); // Clear notes after successful save
         console.log('Match saved successfully');
       } else {
         console.error('Failed to save match:', result.error);
@@ -344,23 +410,44 @@ export default function CourtFullScreenNew({ courtData: initialCourtData }: Cour
             </div>
           </div>
 
-          {/* Upcoming Game - Simple display only */}
+          {/* Upcoming Game - Editable */}
           <div className="border-t-2 sm:border-t-4 pt-4 sm:pt-8" style={{borderColor: '#04362d'}}>
             <div className="text-base sm:text-xl font-bold mb-4 sm:mb-6 text-center tracking-wide uppercase" style={{color: '#04362d'}}>Next Game</div>
             <div className="flex flex-col gap-3 sm:gap-4">
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-                <div className="w-full sm:max-w-xs px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg sm:rounded-xl text-center text-base sm:text-lg bg-gray-100 font-bold"
-                     style={{borderColor: '#04362d', color: '#04362d'}}>
-                  {upcomingLeft || 'Next Team A'}
-                </div>
+                <input
+                  type="text"
+                  value={upcomingLeftName}
+                  onChange={(e) => setUpcomingLeftName(e.target.value)}
+                  className="w-full sm:max-w-xs px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg sm:rounded-xl text-center text-base sm:text-lg font-bold bg-white focus:bg-gray-50 transition-all"
+                  style={{borderColor: '#04362d', color: '#04362d'}}
+                  placeholder="Next Team A"
+                />
 
                 <span className="text-lg sm:text-xl font-bold px-2" style={{color: '#04362d'}}>VS</span>
 
-                <div className="w-full sm:max-w-xs px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg sm:rounded-xl text-center text-base sm:text-lg bg-gray-100 font-bold"
-                     style={{borderColor: '#04362d', color: '#04362d'}}>
-                  {upcomingRight || 'Next Team B'}
-                </div>
+                <input
+                  type="text"
+                  value={upcomingRightName}
+                  onChange={(e) => setUpcomingRightName(e.target.value)}
+                  className="w-full sm:max-w-xs px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg sm:rounded-xl text-center text-base sm:text-lg font-bold bg-white focus:bg-gray-50 transition-all"
+                  style={{borderColor: '#04362d', color: '#04362d'}}
+                  placeholder="Next Team B"
+                />
               </div>
+
+              {/* Save button for upcoming teams */}
+              {(upcomingLeftName !== upcomingLeft || upcomingRightName !== upcomingRight) && (
+                <div className="text-center">
+                  <button
+                    onClick={saveUpcomingTeams}
+                    disabled={isSavingTeams}
+                    className={`px-4 py-2 text-white rounded-lg font-bold transition-colors ${isSavingTeams ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}
+                  >
+                    {isSavingTeams ? 'SAVING...' : 'SAVE UPCOMING TEAMS'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -377,7 +464,7 @@ export default function CourtFullScreenNew({ courtData: initialCourtData }: Cour
               <p className="text-gray-600 mb-4">
                 Are you sure you want to save this completed match?
               </p>
-              <div className="bg-gray-50 rounded-lg p-4 border-2" style={{borderColor: '#04362d'}}>
+              <div className="bg-gray-50 rounded-lg p-4 border-2 mb-4" style={{borderColor: '#04362d'}}>
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-bold" style={{color: '#04362d'}}>{leftTeam.name}</span>
                   <span className="text-2xl font-bold" style={{color: '#04362d'}}>{leftTeam.score}</span>
@@ -388,10 +475,32 @@ export default function CourtFullScreenNew({ courtData: initialCourtData }: Cour
                   <span className="text-2xl font-bold" style={{color: '#04362d'}}>{rightTeam.score}</span>
                 </div>
               </div>
+
+              {/* Notes field */}
+              <div className="text-left">
+                <label className="block text-sm font-bold mb-2" style={{color: '#04362d'}}>
+                  Match Notes (Optional)
+                </label>
+                <textarea
+                  value={matchNotes}
+                  onChange={(e) => setMatchNotes(e.target.value)}
+                  className="w-full px-3 py-2 border-2 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{borderColor: '#04362d'}}
+                  placeholder="Add any notes about this match... (e.g., great rallies, weather conditions, special plays)"
+                  rows={3}
+                  maxLength={500}
+                />
+                <div className="text-xs text-gray-500 mt-1 text-right">
+                  {matchNotes.length}/500 characters
+                </div>
+              </div>
             </div>
             <div className="flex gap-3 justify-center">
               <button
-                onClick={() => setShowSaveConfirmation(false)}
+                onClick={() => {
+                  setShowSaveConfirmation(false);
+                  setMatchNotes(''); // Clear notes when canceling
+                }}
                 disabled={isSavingMatch}
                 className="px-6 py-2 text-gray-600 bg-gray-200 rounded-lg font-bold transition-colors hover:bg-gray-300 disabled:opacity-50"
               >

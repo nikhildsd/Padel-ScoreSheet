@@ -95,10 +95,6 @@ export async function POST(request: NextRequest) {
       }
 
       case 'updateUpcomingTeam': {
-        if (name && name.length > 15) {
-          return NextResponse.json({ success: false, error: 'Upcoming team name must be under 15 characters' }, { status: 400 });
-        }
-
         const success = await updateUpcomingTeam(courtNumber, side, name || '');
         if (!success) {
           return NextResponse.json({ success: false, error: 'Failed to update upcoming team' }, { status: 500 });

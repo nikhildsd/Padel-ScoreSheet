@@ -3,7 +3,7 @@ import { saveMatch } from '@/lib/supabase-client'
 
 export async function POST(request: NextRequest) {
   try {
-    const { courtNumber } = await request.json()
+    const { courtNumber, notes } = await request.json()
 
     if (!courtNumber || typeof courtNumber !== 'number') {
       return NextResponse.json(
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const success = await saveMatch(courtNumber)
+    const success = await saveMatch(courtNumber, notes)
 
     if (success) {
       return NextResponse.json({ success: true })

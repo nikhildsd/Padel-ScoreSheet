@@ -1,13 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CourtData } from '@/lib/db-simple';
-import {
-  incrementScore,
-  decrementScore,
-  resetCourtScores
-} from '@/lib/api-client';
 
 interface CourtProps {
   courtData: CourtData;
@@ -15,53 +10,27 @@ interface CourtProps {
 
 export default function Court({ courtData }: CourtProps) {
   const { courtNumber, leftTeam, rightTeam, upcomingLeft, upcomingRight } = courtData;
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [leftScoreChanged, setLeftScoreChanged] = useState(false);
+  const [rightScoreChanged, setRightScoreChanged] = useState(false);
+  const [prevLeftScore, setPrevLeftScore] = useState(leftTeam.score);
+  const [prevRightScore, setPrevRightScore] = useState(rightTeam.score);
 
-  // No local state needed - team names are read-only on homepage
-
-  // No team name editing logic needed - homepage is read-only
-
-  const handleIncrementScore = async (side: 'left' | 'right') => {
-    if (isUpdating) return;
-    setIsUpdating(true);
-
-    try {
-      const result = await incrementScore(courtNumber, side);
-      if (!result.success && result.error) {
-        console.error('Failed to increment score:', result.error);
-      }
-    } finally {
-      setTimeout(() => setIsUpdating(false), 300);
+  // Detect score changes and trigger animations
+  useEffect(() => {
+    if (leftTeam.score !== prevLeftScore) {
+      setLeftScoreChanged(true);
+      setPrevLeftScore(leftTeam.score);
+      setTimeout(() => setLeftScoreChanged(false), 1000);
     }
-  };
+  }, [leftTeam.score, prevLeftScore]);
 
-  const handleDecrementScore = async (side: 'left' | 'right') => {
-    if (isUpdating) return;
-    setIsUpdating(true);
-
-    try {
-      const result = await decrementScore(courtNumber, side);
-      if (!result.success && result.error) {
-        console.error('Failed to decrement score:', result.error);
-      }
-    } finally {
-      setTimeout(() => setIsUpdating(false), 300);
+  useEffect(() => {
+    if (rightTeam.score !== prevRightScore) {
+      setRightScoreChanged(true);
+      setPrevRightScore(rightTeam.score);
+      setTimeout(() => setRightScoreChanged(false), 1000);
     }
-  };
-
-  const handleResetScores = async () => {
-    if (isUpdating) return;
-    setIsUpdating(true);
-
-    try {
-      const result = await resetCourtScores(courtNumber);
-      if (!result.success && result.error) {
-        console.error('Failed to reset scores:', result.error);
-      }
-    } finally {
-      setTimeout(() => setIsUpdating(false), 500);
-    }
-  };
+  }, [rightTeam.score, prevRightScore]);
 
   return (
     <div className="bg-white rounded-xl shadow-2xl p-2 border hover:shadow-3xl transition-all duration-300 border-white h-full flex flex-col overflow-hidden relative">
@@ -93,73 +62,30 @@ export default function Court({ courtData }: CourtProps) {
           </div>
         </div>
 
-        {/* Score Display and Controls */}
-        <div className="flex items-center justify-center gap-2 mb-2">
+        {/* Score Display Only */}
+        <div className="flex items-center justify-center gap-4 mb-4">
           {/* Left Team Score */}
-          <div className="flex flex-col items-center bg-gray-50 rounded-lg p-2 border-2 shadow-md" style={{borderColor: '#04362d'}}>
-            <div className="flex gap-1 mb-1">
-              <button
-                onClick={() => handleDecrementScore('left')}
-                disabled={isUpdating}
-                className={`w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 active:scale-90'}`}
-              >
-                −
-              </button>
-              <button
-                onClick={() => handleIncrementScore('left')}
-                disabled={isUpdating}
-                className={`w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'active:scale-90'}`}
-                style={{backgroundColor: isUpdating ? '#9CA3AF' : '#04362d'}}
-              >
-                +
-              </button>
-            </div>
-            <div className="text-2xl font-bold min-w-[32px] text-center" style={{color: '#04362d'}}>
+          <div className={`flex flex-col items-center bg-gray-50 rounded-xl p-6 border-3 shadow-xl transition-all duration-500 ${leftScoreChanged ? 'scale-110 bg-green-100 shadow-2xl' : ''}`} style={{borderColor: leftScoreChanged ? '#10b981' : '#04362d'}}>
+            <div className={`text-6xl font-bold min-w-[64px] text-center transition-all duration-500 ${leftScoreChanged ? 'animate-bounce' : ''}`} style={{color: leftScoreChanged ? '#10b981' : '#04362d'}}>
               {leftTeam.score}
             </div>
           </div>
 
           {/* Court Rectangle */}
-          <div className="w-16 h-10 rounded-lg relative mx-1 shadow-lg border-2 border-white" style={{backgroundColor: '#04362d'}}>
+          <div className="w-24 h-16 rounded-xl relative mx-3 shadow-xl border-3 border-white" style={{backgroundColor: '#04362d'}}>
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-full h-0.5 bg-white opacity-80"></div>
-              <div className="absolute w-0.5 h-full bg-white opacity-80"></div>
+              <div className="w-full h-1 bg-white opacity-80"></div>
+              <div className="absolute w-1 h-full bg-white opacity-80"></div>
             </div>
           </div>
 
           {/* Right Team Score */}
-          <div className="flex flex-col items-center bg-gray-50 rounded-lg p-2 border-2 shadow-md" style={{borderColor: '#04362d'}}>
-            <div className="flex gap-1 mb-1">
-              <button
-                onClick={() => handleDecrementScore('right')}
-                disabled={isUpdating}
-                className={`w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 active:scale-90'}`}
-              >
-                −
-              </button>
-              <button
-                onClick={() => handleIncrementScore('right')}
-                disabled={isUpdating}
-                className={`w-5 h-5 text-white rounded-full transition-all text-xs flex items-center justify-center font-bold shadow-md transform ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'active:scale-90'}`}
-                style={{backgroundColor: isUpdating ? '#9CA3AF' : '#04362d'}}
-              >
-                +
-              </button>
-            </div>
-            <div className="text-2xl font-bold min-w-[32px] text-center" style={{color: '#04362d'}}>
+          <div className={`flex flex-col items-center bg-gray-50 rounded-xl p-6 border-3 shadow-xl transition-all duration-500 ${rightScoreChanged ? 'scale-110 bg-green-100 shadow-2xl' : ''}`} style={{borderColor: rightScoreChanged ? '#10b981' : '#04362d'}}>
+            <div className={`text-6xl font-bold min-w-[64px] text-center transition-all duration-500 ${rightScoreChanged ? 'animate-bounce' : ''}`} style={{color: rightScoreChanged ? '#10b981' : '#04362d'}}>
               {rightTeam.score}
             </div>
           </div>
         </div>
-
-        <button
-          onClick={handleResetScores}
-          disabled={isUpdating}
-          className={`w-full px-2 py-1 text-white text-xs rounded-md transition-all font-bold tracking-wide uppercase shadow-md ${isUpdating ? 'bg-gray-400 cursor-not-allowed' : 'transform active:scale-95'}`}
-          style={{backgroundColor: isUpdating ? '#9CA3AF' : '#04362d'}}
-        >
-          {isUpdating ? 'Updating...' : 'Reset'}
-        </button>
       </div>
 
       {/* Upcoming Game */}

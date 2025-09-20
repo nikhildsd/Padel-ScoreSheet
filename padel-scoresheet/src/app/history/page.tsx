@@ -117,32 +117,34 @@ export default function HistoryPage() {
                     </div>
 
                     {/* Teams and Scores */}
-                    <div className="flex items-center justify-center gap-4 mb-3">
-                      <div className="flex-1 max-w-xs">
-                        <div className="text-center p-3 bg-gray-50 rounded-lg border-2" style={{borderColor: '#04362d'}}>
-                          <div className="font-bold text-lg" style={{color: '#04362d'}}>
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
+                      <div className="w-full sm:flex-1 sm:max-w-xs">
+                        <div className="text-center p-4 bg-gray-50 rounded-xl border-2 shadow-md" style={{borderColor: '#04362d'}}>
+                          <div className="font-bold text-lg mb-2 truncate" style={{color: '#04362d'}}>
                             {match.left_team_name || 'Team A'}
                           </div>
-                          <div className="text-3xl font-bold mt-2" style={{color: '#04362d'}}>
+                          <div className="text-4xl font-bold" style={{color: '#04362d'}}>
                             {match.left_team_score}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-center px-4">
-                        <span className="text-xl font-bold" style={{color: '#04362d'}}>VS</span>
-                        <div className="w-12 h-6 rounded-md mt-2 border" style={{backgroundColor: '#04362d', borderColor: '#04362d'}}>
-                          <div className="w-full h-0.5 bg-white opacity-80 mt-2.5"></div>
-                          <div className="w-0.5 h-full bg-white opacity-80 absolute ml-6 -mt-6"></div>
+                      <div className="flex flex-col items-center px-2 py-2">
+                        <span className="text-xl font-bold mb-2" style={{color: '#04362d'}}>VS</span>
+                        <div className="w-14 h-8 rounded-lg border-2 relative shadow-md" style={{backgroundColor: '#04362d', borderColor: '#04362d'}}>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-full h-0.5 bg-white opacity-80"></div>
+                            <div className="absolute w-0.5 h-full bg-white opacity-80"></div>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex-1 max-w-xs">
-                        <div className="text-center p-3 bg-gray-50 rounded-lg border-2" style={{borderColor: '#04362d'}}>
-                          <div className="font-bold text-lg" style={{color: '#04362d'}}>
+                      <div className="w-full sm:flex-1 sm:max-w-xs">
+                        <div className="text-center p-4 bg-gray-50 rounded-xl border-2 shadow-md" style={{borderColor: '#04362d'}}>
+                          <div className="font-bold text-lg mb-2 truncate" style={{color: '#04362d'}}>
                             {match.right_team_name || 'Team B'}
                           </div>
-                          <div className="text-3xl font-bold mt-2" style={{color: '#04362d'}}>
+                          <div className="text-4xl font-bold" style={{color: '#04362d'}}>
                             {match.right_team_score}
                           </div>
                         </div>
@@ -151,14 +153,26 @@ export default function HistoryPage() {
 
                     {/* Upcoming Teams */}
                     {(match.upcoming_left || match.upcoming_right) && (
-                      <div className="pt-3 border-t border-gray-200">
-                        <div className="text-xs font-bold mb-2 text-center" style={{color: '#04362d'}}>
-                          Next Teams
+                      <div className="pt-4 border-t border-gray-200">
+                        <div className="text-sm font-bold mb-3 text-center" style={{color: '#04362d'}}>
+                          Next Up
                         </div>
-                        <div className="flex items-center justify-center gap-2 text-sm">
-                          <span className="text-gray-600">{match.upcoming_left || 'Next A'}</span>
-                          <span className="text-gray-400">vs</span>
-                          <span className="text-gray-600">{match.upcoming_right || 'Next B'}</span>
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-sm bg-gray-50 rounded-lg p-3">
+                          <span className="font-medium text-gray-700 text-center">{match.upcoming_left || 'Next A'}</span>
+                          <span className="text-gray-400 font-bold">vs</span>
+                          <span className="font-medium text-gray-700 text-center">{match.upcoming_right || 'Next B'}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Match Notes */}
+                    {match.notes && (
+                      <div className="pt-4 border-t border-gray-200">
+                        <div className="text-sm font-bold mb-3" style={{color: '#04362d'}}>
+                          📝 Match Notes
+                        </div>
+                        <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-400 shadow-sm">
+                          <p className="text-sm text-gray-700 leading-relaxed italic">"{match.notes}"</p>
                         </div>
                       </div>
                     )}

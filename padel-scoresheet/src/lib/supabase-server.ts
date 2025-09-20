@@ -27,6 +27,7 @@ export type SavedMatchRow = {
   right_team_score: number
   upcoming_left: string
   upcoming_right: string
+  notes: string | null
   saved_at: string
   created_at: string
 }

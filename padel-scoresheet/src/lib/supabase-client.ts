@@ -163,7 +163,7 @@ export async function resetAllCourts(): Promise<boolean> {
   return true
 }
 
-export async function saveMatch(courtNumber: number): Promise<boolean> {
+export async function saveMatch(courtNumber: number, notes?: string): Promise<boolean> {
   // First get current court data
   const court = await getCourt(courtNumber)
   if (!court) return false
@@ -177,7 +177,8 @@ export async function saveMatch(courtNumber: number): Promise<boolean> {
       right_team_name: court.rightTeam.name,
       right_team_score: court.rightTeam.score,
       upcoming_left: court.upcomingLeft,
-      upcoming_right: court.upcomingRight
+      upcoming_right: court.upcomingRight,
+      notes: notes || null
     })
 
   if (error) {
