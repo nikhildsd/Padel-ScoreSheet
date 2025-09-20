@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { CourtData } from '@/lib/db-simple';
 import {
   incrementScore,
@@ -9,7 +9,6 @@ import {
   updateTeamName,
   updateUpcomingTeam
 } from '@/lib/api-client';
-import { useDebounce } from '@/hooks/useDebounce';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -27,64 +26,60 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
     setCourtData(initialCourtData);
   }, [initialCourtData]);
 
-  // Local state for inputs to provide immediate feedback
+  // Local state for inputs - no auto-saving, manual save buttons
   const [leftTeamName, setLeftTeamName] = useState(leftTeam.name);
   const [rightTeamName, setRightTeamName] = useState(rightTeam.name);
   const [upcomingLeftName, setUpcomingLeftName] = useState(upcomingLeft);
   const [upcomingRightName, setUpcomingRightName] = useState(upcomingRight);
 
-  // Debounced values - only trigger server updates after user stops typing for 1.5 seconds
-  const debouncedLeftTeamName = useDebounce(leftTeamName, 1500);
-  const debouncedRightTeamName = useDebounce(rightTeamName, 1500);
-  const debouncedUpcomingLeft = useDebounce(upcomingLeftName, 1500);
-  const debouncedUpcomingRight = useDebounce(upcomingRightName, 1500);
+  // Track if names have been modified
+  const [leftTeamNameChanged, setLeftTeamNameChanged] = useState(false);
+  const [rightTeamNameChanged, setRightTeamNameChanged] = useState(false);
+  const [upcomingLeftChanged, setUpcomingLeftChanged] = useState(false);
+  const [upcomingRightChanged, setUpcomingRightChanged] = useState(false);
 
-  // Define callback functions first
-  const handleTeamNameChange = useCallback(async (side: 'left' | 'right', name: string) => {
-    const result = await updateTeamName(courtNumber, side, name);
-    if (!result.success && result.error) {
-      console.error('Failed to update team name:', result.error);
+
+  // Manual save functions
+  const saveLeftTeamName = async () => {
+    if (leftTeamName.trim() === '') return;
+    const result = await updateTeamName(courtNumber, 'left', leftTeamName);
+    if (result.success) {
+      setLeftTeamNameChanged(false);
     }
-  }, [courtNumber]);
+  };
 
-  const handleUpcomingTeamChange = useCallback(async (side: 'left' | 'right', name: string) => {
-    const result = await updateUpcomingTeam(courtNumber, side, name);
-    if (!result.success && result.error) {
-      console.error('Failed to update upcoming team:', result.error);
+  const saveRightTeamName = async () => {
+    if (rightTeamName.trim() === '') return;
+    const result = await updateTeamName(courtNumber, 'right', rightTeamName);
+    if (result.success) {
+      setRightTeamNameChanged(false);
     }
-  }, [courtNumber]);
+  };
 
-  // Update server when debounced values change, but only if user actually typed something
-  useEffect(() => {
-    if (debouncedLeftTeamName !== leftTeam.name && debouncedLeftTeamName.trim() !== '') {
-      handleTeamNameChange('left', debouncedLeftTeamName);
+  const saveUpcomingLeft = async () => {
+    const result = await updateUpcomingTeam(courtNumber, 'left', upcomingLeftName);
+    if (result.success) {
+      setUpcomingLeftChanged(false);
     }
-  }, [debouncedLeftTeamName, leftTeam.name, handleTeamNameChange]);
+  };
 
-  useEffect(() => {
-    if (debouncedRightTeamName !== rightTeam.name && debouncedRightTeamName.trim() !== '') {
-      handleTeamNameChange('right', debouncedRightTeamName);
+  const saveUpcomingRight = async () => {
+    const result = await updateUpcomingTeam(courtNumber, 'right', upcomingRightName);
+    if (result.success) {
+      setUpcomingRightChanged(false);
     }
-  }, [debouncedRightTeamName, rightTeam.name, handleTeamNameChange]);
+  };
 
-  useEffect(() => {
-    if (debouncedUpcomingLeft !== upcomingLeft) {
-      handleUpcomingTeamChange('left', debouncedUpcomingLeft);
-    }
-  }, [debouncedUpcomingLeft, upcomingLeft, handleUpcomingTeamChange]);
-
-  useEffect(() => {
-    if (debouncedUpcomingRight !== upcomingRight) {
-      handleUpcomingTeamChange('right', debouncedUpcomingRight);
-    }
-  }, [debouncedUpcomingRight, upcomingRight, handleUpcomingTeamChange]);
-
-  // Update local state when props change (from server updates)
+  // Update local state when props change (from server updates) and reset change flags
   useEffect(() => {
     setLeftTeamName(leftTeam.name);
     setRightTeamName(rightTeam.name);
     setUpcomingLeftName(upcomingLeft);
     setUpcomingRightName(upcomingRight);
+    setLeftTeamNameChanged(false);
+    setRightTeamNameChanged(false);
+    setUpcomingLeftChanged(false);
+    setUpcomingRightChanged(false);
   }, [leftTeam.name, rightTeam.name, upcomingLeft, upcomingRight]);
 
   const handleIncrementScore = async (side: 'left' | 'right') => {
@@ -184,26 +179,56 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
           </div>
           
           {/* Team Names */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mb-8 sm:mb-12">
-            <input
-              type="text"
-              value={leftTeamName}
-              onChange={(e) => setLeftTeamName(e.target.value)}
-              className="w-full sm:flex-1 sm:max-w-xs px-3 sm:px-6 py-2 sm:py-4 text-lg sm:text-2xl border-2 sm:border-4 rounded-xl sm:rounded-2xl text-center font-bold bg-white focus:bg-gray-50 transition-all"
-              style={{borderColor: '#04362d', color: '#04362d'}}
-              placeholder="Team A"
-              maxLength={20}
-            />
-            <span className="text-xl sm:text-3xl font-bold px-2 sm:px-4" style={{color: '#04362d'}}>VS</span>
-            <input
-              type="text"
-              value={rightTeamName}
-              onChange={(e) => setRightTeamName(e.target.value)}
-              className="w-full sm:flex-1 sm:max-w-xs px-3 sm:px-6 py-2 sm:py-4 text-lg sm:text-2xl border-2 sm:border-4 rounded-xl sm:rounded-2xl text-center font-bold bg-white focus:bg-gray-50 transition-all"
-              style={{borderColor: '#04362d', color: '#04362d'}}
-              placeholder="Team B"
-              maxLength={20}
-            />
+          <div className="flex flex-col gap-4 sm:gap-6 mb-8 sm:mb-12">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
+              <div className="flex flex-col items-center gap-2">
+                <input
+                  type="text"
+                  value={leftTeamName}
+                  onChange={(e) => {
+                    setLeftTeamName(e.target.value);
+                    setLeftTeamNameChanged(e.target.value !== leftTeam.name);
+                  }}
+                  className="w-full sm:max-w-xs px-3 sm:px-6 py-2 sm:py-4 text-lg sm:text-2xl border-2 sm:border-4 rounded-xl sm:rounded-2xl text-center font-bold bg-white focus:bg-gray-50 transition-all"
+                  style={{borderColor: leftTeamNameChanged ? '#f59e0b' : '#04362d', color: '#04362d'}}
+                  placeholder="Team A"
+                  maxLength={20}
+                />
+                {leftTeamNameChanged && (
+                  <button
+                    onClick={saveLeftTeamName}
+                    className="px-3 py-1 text-xs bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors font-bold"
+                  >
+                    SAVE
+                  </button>
+                )}
+              </div>
+
+              <span className="text-xl sm:text-3xl font-bold px-2 sm:px-4" style={{color: '#04362d'}}>VS</span>
+
+              <div className="flex flex-col items-center gap-2">
+                <input
+                  type="text"
+                  value={rightTeamName}
+                  onChange={(e) => {
+                    setRightTeamName(e.target.value);
+                    setRightTeamNameChanged(e.target.value !== rightTeam.name);
+                  }}
+                  className="w-full sm:max-w-xs px-3 sm:px-6 py-2 sm:py-4 text-lg sm:text-2xl border-2 sm:border-4 rounded-xl sm:rounded-2xl text-center font-bold bg-white focus:bg-gray-50 transition-all"
+                  style={{borderColor: rightTeamNameChanged ? '#f59e0b' : '#04362d', color: '#04362d'}}
+                  placeholder="Team B"
+                  maxLength={20}
+                />
+                {rightTeamNameChanged && (
+                  <button
+                    onClick={saveRightTeamName}
+                    className="px-3 py-1 text-xs bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors font-bold"
+                  >
+                    SAVE
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Score Display and Controls */}
@@ -282,25 +307,53 @@ export default function CourtFullScreen({ courtData: initialCourtData }: CourtFu
           <div className="border-t-2 sm:border-t-4 pt-4 sm:pt-8" style={{borderColor: '#04362d'}}>
             <div className="text-base sm:text-xl font-bold mb-4 sm:mb-6 text-center tracking-wide uppercase" style={{color: '#04362d'}}>Next Game</div>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-              <input
-                type="text"
-                value={upcomingLeftName}
-                onChange={(e) => setUpcomingLeftName(e.target.value)}
-                className="w-full sm:flex-1 sm:max-w-xs px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg sm:rounded-xl text-center text-base sm:text-lg bg-white focus:bg-gray-50 transition-all font-bold"
-                style={{borderColor: '#04362d', color: '#04362d'}}
-                placeholder="Next Team A"
-                maxLength={15}
-              />
+              <div className="flex flex-col items-center gap-2">
+                <input
+                  type="text"
+                  value={upcomingLeftName}
+                  onChange={(e) => {
+                    setUpcomingLeftName(e.target.value);
+                    setUpcomingLeftChanged(e.target.value !== upcomingLeft);
+                  }}
+                  className="w-full sm:max-w-xs px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg sm:rounded-xl text-center text-base sm:text-lg bg-white focus:bg-gray-50 transition-all font-bold"
+                  style={{borderColor: upcomingLeftChanged ? '#f59e0b' : '#04362d', color: '#04362d'}}
+                  placeholder="Next Team A"
+                  maxLength={15}
+                />
+                {upcomingLeftChanged && (
+                  <button
+                    onClick={saveUpcomingLeft}
+                    className="px-2 py-1 text-xs bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors font-bold"
+                  >
+                    SAVE
+                  </button>
+                )}
+              </div>
+
               <span className="text-lg sm:text-xl font-bold px-2" style={{color: '#04362d'}}>VS</span>
-              <input
-                type="text"
-                value={upcomingRightName}
-                onChange={(e) => setUpcomingRightName(e.target.value)}
-                className="w-full sm:flex-1 sm:max-w-xs px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg sm:rounded-xl text-center text-base sm:text-lg bg-white focus:bg-gray-50 transition-all font-bold"
-                style={{borderColor: '#04362d', color: '#04362d'}}
-                placeholder="Next Team B"
-                maxLength={15}
-              />
+
+              <div className="flex flex-col items-center gap-2">
+                <input
+                  type="text"
+                  value={upcomingRightName}
+                  onChange={(e) => {
+                    setUpcomingRightName(e.target.value);
+                    setUpcomingRightChanged(e.target.value !== upcomingRight);
+                  }}
+                  className="w-full sm:max-w-xs px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg sm:rounded-xl text-center text-base sm:text-lg bg-white focus:bg-gray-50 transition-all font-bold"
+                  style={{borderColor: upcomingRightChanged ? '#f59e0b' : '#04362d', color: '#04362d'}}
+                  placeholder="Next Team B"
+                  maxLength={15}
+                />
+                {upcomingRightChanged && (
+                  <button
+                    onClick={saveUpcomingRight}
+                    className="px-2 py-1 text-xs bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors font-bold"
+                  >
+                    SAVE
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
